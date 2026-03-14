@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import AddItem from './ToDo-Aula/src/add';
 import ListItem from './ToDo-Aula/src/list';
