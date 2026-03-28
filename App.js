@@ -1,97 +1,154 @@
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Alert } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
+import LoginScreen from './src/screens/LoginScreen';
+import RegisterScreen from './src/screens/RegisterScreen';
 import AddItem from './ToDo-Aula/src/add';
 import ListItem from './ToDo-Aula/src/list';
-import { v4 as uuidv4 } from 'uuid';
-import 'react-native-get-random-values';
+
+const gerarId = () => Math.random().toString(36).substring(2) + Date.now().toString(36);
+
+const usuariosCadastrados = [];
 
 export default function App() {
-  const [biometria, setBiometria] = useState(false);
-  const [authStatus, setAuthStatus] = useState('idle'); // idle | checking | success | fail
+  const [tela, setTela] = useState('login');
+  const [usuarioLogado, setUsuarioLogado] = useState(null);
+  const [ultimoUsuario, setUltimoUsuario] = useState(null);
+  const [biometriaDisponivel, setBiometriaDisponivel] = useState(false);
   const [items, setItems] = useState([]);
 
   useEffect(() => {
     (async () => {
       const compativel = await LocalAuthentication.hasHardwareAsync();
-      setBiometria(compativel);
+      const cadastrada = await LocalAuthentication.isEnrolledAsync();
+      setBiometriaDisponivel(compativel && cadastrada);
     })();
   }, []);
 
-  const authenticate = async () => {
-    setAuthStatus('checking');
-    const authentication = await LocalAuthentication.authenticateAsync({
-      promptMessage: 'Confirme sua biometria',
+  const handleBiometria = async () => {
+    const resultado = await LocalAuthentication.authenticateAsync({
+      promptMessage: 'Confirme sua identidade',
+      cancelLabel: 'Cancelar',
     });
-    setAuthStatus(authentication.success ? 'success' : 'fail');
+    if (resultado.success) {
+      setUsuarioLogado(ultimoUsuario);
+      setTela('catalogo');
+    } else {
+      Alert.alert('Falha', 'Biometria não reconhecida.');
+    }
+  };
+
+  const handleLogin = (email, senha) => {
+    const usuario = usuariosCadastrados.find(
+      (u) => u.email === email && u.senha === senha
+    );
+    if (!usuario) {
+      Alert.alert('Erro', 'E-mail ou senha incorretos.');
+      return;
+    }
+    setUsuarioLogado(usuario);
+    setUltimoUsuario(usuario);
+    setTela('catalogo');
+  };
+
+  const handleCadastro = ({ nome, email, senha }) => {
+    const jaExiste = usuariosCadastrados.find((u) => u.email === email);
+    if (jaExiste) {
+      Alert.alert('Atenção', 'Este e-mail já está cadastrado.');
+      return;
+    }
+    usuariosCadastrados.push({ nome, email, senha });
+    Alert.alert('Sucesso!', `Conta criada para ${nome}. Faça o login.`, [
+      { text: 'OK', onPress: () => setTela('login') },
+    ]);
   };
 
   const addItem = (product) => {
-    setItems((prev) => [...prev, { id: uuidv4(), ...product }]);
+    setItems((prev) => [...prev, { id: gerarId(), ...product }]);
   };
 
   const deleteItem = (id) => {
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  if (authStatus === 'checking') {
+  if (tela === 'cadastro') {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.statusText}>Autenticando...</Text>
-      </View>
+      <>
+        <RegisterScreen
+          onRegister={handleCadastro}
+          onGoLogin={() => setTela('login')}
+        />
+        <StatusBar style="light" />
+      </>
     );
   }
 
-  if (authStatus === 'success') {
+  if (tela === 'catalogo') {
     return (
-      <View style={styles.container}>
-        <Text style={styles.heading}>Catalogo</Text>
+      <View style={styles.catalogo}>
+        <View style={styles.catalogoHeader}>
+          <Text style={styles.catalogoEmoji}>🍦</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.catalogoTitulo}>Catálogo</Text>
+            <Text style={styles.catalogoSub}>Olá, {usuarioLogado?.nome}!</Text>
+          </View>
+          <Text
+            style={styles.sairBtn}
+            onPress={() => { setTela('login'); setUsuarioLogado(null); }}
+          >
+            Sair
+          </Text>
+        </View>
         <AddItem addItem={addItem} />
         <ListItem listItems={items} deleteItem={deleteItem} />
-        <StatusBar style="auto" />
+        <StatusBar style="dark" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.statusText}>{biometria ? 'Biometria disponivel' : 'Biometria nao disponivel'}</Text>
-      <TouchableOpacity onPress={authenticate} style={styles.button} disabled={!biometria}>
-        <Text>Entrar</Text>
-      </TouchableOpacity>
-      {authStatus === 'fail' && <Text style={styles.failText}>Falha na autenticacao. Tente novamente.</Text>}
-      <StatusBar style="auto" />
-    </View>
+    <>
+      <LoginScreen
+        onLogin={handleLogin}
+        onGoRegister={() => setTela('cadastro')}
+        onBiometria={handleBiometria}
+        biometriaDisponivel={biometriaDisponivel}
+        ultimoUsuario={ultimoUsuario}
+      />
+      <StatusBar style="light" />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  catalogo: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  button: {
-    marginTop: 12,
+    backgroundColor: '#F9F9F9',
+    paddingTop: 56,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: '#ddd',
-    borderRadius: 6,
   },
-  statusText: {
-    marginTop: 12,
-    fontSize: 16,
+  catalogoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  failText: {
-    marginTop: 8,
-    color: 'red',
+  catalogoEmoji: {
+    fontSize: 36,
+    marginRight: 12,
   },
-  heading: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 12,
+  catalogoTitulo: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1a1a2e',
+  },
+  catalogoSub: {
+    fontSize: 13,
+    color: '#888',
+  },
+  sairBtn: {
+    color: '#FF4D8D',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
