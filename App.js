@@ -1,154 +1,220 @@
 import { StatusBar } from 'expo-status-bar';
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
-import * as LocalAuthentication from 'expo-local-authentication';
+import React, { useState } from 'react';
+import { View, StyleSheet, Alert } from 'react-native';
+
+import SplashScreen from './src/screens/SplashScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
-import AddItem from './ToDo-Aula/src/add';
-import ListItem from './ToDo-Aula/src/list';
+import HomeScreen from './src/screens/HomeScreen';
+import ProductDetailScreen from './src/screens/ProductDetailScreen';
+import AddProductScreen from './src/screens/AddProductScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
+import MapScreen from './src/screens/MapScreen';
+import Sidebar from './src/components/Sidebar';
 
-const gerarId = () => Math.random().toString(36).substring(2) + Date.now().toString(36);
-
-const usuariosCadastrados = [];
+import { useAuth } from './src/hooks/useAuth';
+import { useProducts } from './src/hooks/useProducts';
+import { useProfile } from './src/hooks/useProfile';
 
 export default function App() {
+  const [splashFim, setSplashFim] = useState(false);
+
+  const {
+    usuarioLogado,
+    ultimoUsuario,
+    biometriaDisponivel,
+    carregando,
+    login,
+    cadastrar,
+    logout,
+    autenticarBiometria,
+    ativarBiometria,
+  } = useAuth();
+
+  const { produtos, adicionarProduto } = useProducts();
+  const { perfil, salvarPerfil } = useProfile();
+
   const [tela, setTela] = useState('login');
-  const [usuarioLogado, setUsuarioLogado] = useState(null);
-  const [ultimoUsuario, setUltimoUsuario] = useState(null);
-  const [biometriaDisponivel, setBiometriaDisponivel] = useState(false);
-  const [items, setItems] = useState([]);
+  const [telaInterna, setTelaInterna] = useState('home');
+  const [produtoSelecionado, setProdutoSelecionado] = useState(null);
+  const [sidebarAberta, setSidebarAberta] = useState(false);
+  const [telaAnterior, setTelaAnterior] = useState(null);
 
-  useEffect(() => {
-    (async () => {
-      const compativel = await LocalAuthentication.hasHardwareAsync();
-      const cadastrada = await LocalAuthentication.isEnrolledAsync();
-      setBiometriaDisponivel(compativel && cadastrada);
-    })();
-  }, []);
-
-  const handleBiometria = async () => {
-    const resultado = await LocalAuthentication.authenticateAsync({
-      promptMessage: 'Confirme sua identidade',
-      cancelLabel: 'Cancelar',
-    });
-    if (resultado.success) {
-      setUsuarioLogado(ultimoUsuario);
-      setTela('catalogo');
-    } else {
-      Alert.alert('Falha', 'Biometria não reconhecida.');
-    }
+  const navegar = (destino) => {
+    setTelaAnterior(telaInterna);
+    setTelaInterna(destino);
   };
 
-  const handleLogin = (email, senha) => {
-    const usuario = usuariosCadastrados.find(
-      (u) => u.email === email && u.senha === senha
-    );
-    if (!usuario) {
-      Alert.alert('Erro', 'E-mail ou senha incorretos.');
-      return;
-    }
-    setUsuarioLogado(usuario);
-    setUltimoUsuario(usuario);
-    setTela('catalogo');
+  const voltar = () => {
+    setTelaInterna(telaAnterior || 'home');
+    setTelaAnterior(null);
   };
 
-  const handleCadastro = ({ nome, email, senha }) => {
-    const jaExiste = usuariosCadastrados.find((u) => u.email === email);
-    if (jaExiste) {
+  // --- Auth ---
+  const handleLogin = async (email, senha) => {
+    const ok = await login(email, senha);
+    if (!ok) { Alert.alert('Erro', 'E-mail ou senha incorretos.'); return; }
+    setTela('app');
+    setTelaInterna('home');
+  };
+
+  const handleCadastro = async (dados, callbackBiometria) => {
+    const resultado = await cadastrar(dados);
+    if (resultado === 'duplicado') {
       Alert.alert('Atenção', 'Este e-mail já está cadastrado.');
       return;
     }
-    usuariosCadastrados.push({ nome, email, senha });
-    Alert.alert('Sucesso!', `Conta criada para ${nome}. Faça o login.`, [
-      { text: 'OK', onPress: () => setTela('login') },
+
+    if (biometriaDisponivel && callbackBiometria) {
+      Alert.alert(
+        'Conta criada!',
+        `Bem-vindo(a), ${dados.nome}!\n\nDeseja ativar login por biometria (digital/Face ID)?`,
+        [
+          { text: 'Agora não', onPress: () => setTela('login') },
+          {
+            text: 'Ativar biometria',
+            onPress: async () => {
+              const ok = await ativarBiometria(dados);
+              if (ok) {
+                Alert.alert('Biometria ativada!', 'Agora você pode entrar com digital ou Face ID.', [
+                  { text: 'OK', onPress: () => setTela('login') },
+                ]);
+              } else {
+                setTela('login');
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      Alert.alert('Conta criada!', `Bem-vindo(a), ${dados.nome}! Faça o login.`, [
+        { text: 'OK', onPress: () => setTela('login') },
+      ]);
+    }
+  };
+
+  const handleBiometria = async () => {
+    const ok = await autenticarBiometria();
+    if (ok) {
+      setTela('app');
+      setTelaInterna('home');
+    }
+  };
+
+  const handleSair = () => {
+    logout();
+    setTela('login');
+    setTelaInterna('home');
+    setSidebarAberta(false);
+  };
+
+  // --- Produtos ---
+  const handleAdicionarProduto = async (produto) => {
+    const novo = await adicionarProduto(produto);
+    Alert.alert('Produto salvo!', `${novo.nome} foi adicionado.`, [
+      { text: 'OK', onPress: () => setTelaInterna('home') },
     ]);
   };
 
-  const addItem = (product) => {
-    setItems((prev) => [...prev, { id: gerarId(), ...product }]);
+  // --- Sidebar ---
+  const handleSidebarNavigate = (destino) => {
+    setSidebarAberta(false);
+    navegar(destino);
   };
 
-  const deleteItem = (id) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
-  };
+  // =====================
+  // SPLASH
+  // =====================
+  if (!splashFim || carregando) {
+    return <SplashScreen onFim={() => setSplashFim(true)} />;
+  }
 
+  // =====================
+  // TELAS DE AUTH
+  // =====================
   if (tela === 'cadastro') {
     return (
       <>
         <RegisterScreen
           onRegister={handleCadastro}
           onGoLogin={() => setTela('login')}
+          onAtivarBiometria={biometriaDisponivel}
         />
         <StatusBar style="light" />
       </>
     );
   }
 
-  if (tela === 'catalogo') {
+  if (tela === 'login') {
     return (
-      <View style={styles.catalogo}>
-        <View style={styles.catalogoHeader}>
-          <Text style={styles.catalogoEmoji}>🍦</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.catalogoTitulo}>Catálogo</Text>
-            <Text style={styles.catalogoSub}>Olá, {usuarioLogado?.nome}!</Text>
-          </View>
-          <Text
-            style={styles.sairBtn}
-            onPress={() => { setTela('login'); setUsuarioLogado(null); }}
-          >
-            Sair
-          </Text>
-        </View>
-        <AddItem addItem={addItem} />
-        <ListItem listItems={items} deleteItem={deleteItem} />
-        <StatusBar style="dark" />
-      </View>
+      <>
+        <LoginScreen
+          onLogin={handleLogin}
+          onGoRegister={() => setTela('cadastro')}
+          onBiometria={handleBiometria}
+          biometriaDisponivel={biometriaDisponivel}
+          ultimoUsuario={ultimoUsuario}
+        />
+        <StatusBar style="light" />
+      </>
     );
   }
 
+  // =====================
+  // APP (pós-login)
+  // =====================
   return (
-    <>
-      <LoginScreen
-        onLogin={handleLogin}
-        onGoRegister={() => setTela('cadastro')}
-        onBiometria={handleBiometria}
-        biometriaDisponivel={biometriaDisponivel}
-        ultimoUsuario={ultimoUsuario}
-      />
+    <View style={styles.container}>
       <StatusBar style="light" />
-    </>
+
+      {telaInterna === 'home' && (
+        <HomeScreen
+          produtos={produtos}
+          onSelectProduto={(p) => { setProdutoSelecionado(p); navegar('detalhe'); }}
+          onAbrirSidebar={() => setSidebarAberta(true)}
+          onAbrirPerfil={() => navegar('perfil')}
+        />
+      )}
+
+      {telaInterna === 'detalhe' && produtoSelecionado && (
+        <ProductDetailScreen
+          produto={produtoSelecionado}
+          onVoltar={voltar}
+        />
+      )}
+
+      {telaInterna === 'adicionar' && (
+        <AddProductScreen
+          onSalvar={handleAdicionarProduto}
+          onVoltar={voltar}
+        />
+      )}
+
+      {telaInterna === 'perfil' && (
+        <ProfileScreen
+          usuario={usuarioLogado}
+          perfil={perfil}
+          onSalvar={salvarPerfil}
+          onVoltar={voltar}
+          onSair={handleSair}
+        />
+      )}
+
+      {telaInterna === 'mapa' && (
+        <MapScreen onVoltar={voltar} />
+      )}
+
+      <Sidebar
+        aberta={sidebarAberta}
+        onFechar={() => setSidebarAberta(false)}
+        onNavigate={handleSidebarNavigate}
+        onSair={handleSair}
+        usuario={usuarioLogado}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  catalogo: {
-    flex: 1,
-    backgroundColor: '#F9F9F9',
-    paddingTop: 56,
-    paddingHorizontal: 16,
-  },
-  catalogoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  catalogoEmoji: {
-    fontSize: 36,
-    marginRight: 12,
-  },
-  catalogoTitulo: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#1a1a2e',
-  },
-  catalogoSub: {
-    fontSize: 13,
-    color: '#888',
-  },
-  sairBtn: {
-    color: '#FF4D8D',
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  container: { flex: 1, backgroundColor: '#F4F0FF' },
 });

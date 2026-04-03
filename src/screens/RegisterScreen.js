@@ -1,17 +1,11 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert,
+  View, Text, Image, TextInput, TouchableOpacity,
+  StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert,
 } from 'react-native';
+import { logo } from '../utils/images';
 
-export default function RegisterScreen({ onRegister, onGoLogin }) {
+export default function RegisterScreen({ onRegister, onGoLogin, onAtivarBiometria }) {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -19,23 +13,12 @@ export default function RegisterScreen({ onRegister, onGoLogin }) {
   const [mostrarSenha, setMostrarSenha] = useState(false);
 
   const handleCadastrar = () => {
-    if (!nome.trim() || !email.trim() || !senha || !confirmar) {
-      Alert.alert('Atenção', 'Preencha todos os campos.');
-      return;
-    }
-    if (!email.includes('@')) {
-      Alert.alert('Atenção', 'Informe um e-mail válido.');
-      return;
-    }
-    if (senha.length < 6) {
-      Alert.alert('Atenção', 'A senha deve ter pelo menos 6 caracteres.');
-      return;
-    }
-    if (senha !== confirmar) {
-      Alert.alert('Atenção', 'As senhas não coincidem.');
-      return;
-    }
-    onRegister({ nome: nome.trim(), email: email.trim().toLowerCase(), senha });
+    if (!nome.trim()) { Alert.alert('Nome obrigatório', 'Por favor, informe seu nome completo.'); return; }
+    if (!email.trim() || !email.includes('@')) { Alert.alert('E-mail inválido', 'Informe um endereço de e-mail válido.'); return; }
+    if (senha.length < 6) { Alert.alert('Senha fraca', 'Sua senha precisa ter pelo menos 6 caracteres.'); return; }
+    if (senha !== confirmar) { Alert.alert('Senhas diferentes', 'A confirmação não coincide com a senha digitada.'); return; }
+    const dadosUsuario = { nome: nome.trim(), email: email.trim().toLowerCase(), senha };
+    onRegister(dadosUsuario, onAtivarBiometria);
   };
 
   return (
@@ -47,8 +30,9 @@ export default function RegisterScreen({ onRegister, onGoLogin }) {
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.emoji}>🍨</Text>
-          <Text style={styles.brand}>Gelato MEC</Text>
+          <View style={styles.logoContainer}>
+            <Image source={logo} style={styles.logoImg} resizeMode="cover" />
+          </View>
           <Text style={styles.tagline}>Crie sua conta e aproveite!</Text>
         </View>
 
@@ -137,15 +121,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 28,
   },
-  emoji: {
-    fontSize: 64,
+  logoContainer: {
+    width: 200,
+    height: 109,
+    borderRadius: 14,
+    overflow: 'hidden',
     marginBottom: 8,
   },
-  brand: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: 1,
+  logoImg: {
+    width: '100%',
+    height: '100%',
   },
   tagline: {
     fontSize: 14,

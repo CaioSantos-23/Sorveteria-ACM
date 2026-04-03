@@ -1,32 +1,40 @@
 {
   "expo": {
-    "name": "sorvete-mec",
-    "slug": "sorvete-mec",
+    "name": "Gelato MEC",
+    "slug": "gelato-mec",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo_gelato_mec.jpeg",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/logo_gelato_mec.jpeg",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#3D1A78"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.sorvete.mec",
+      "bundleIdentifier": "com.gelato.mec",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#3D1A78",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.sorvete.mec"
+      "package": "com.gelato.mec",
+      "config": {
+        "googleMaps": {
+          "apiKey": "SUA_CHAVE_AQUI"
+        }
+      }
     },
+    "plugins": [
+      ["expo-location", { "locationAlwaysAndWhenInUsePermission": "Permitir que o Gelato MEC acesse sua localização." }]
+    ],
     "web": {
       "favicon": "./assets/favicon.png"
     },
