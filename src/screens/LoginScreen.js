@@ -1,15 +1,9 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert,
+  View, Text, Image, TextInput, TouchableOpacity,
+  StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert,
 } from 'react-native';
+import { logo } from '../utils/images';
 
 export default function LoginScreen({ onLogin, onGoRegister, onBiometria, biometriaDisponivel, ultimoUsuario }) {
   const [email, setEmail] = useState('');
@@ -17,10 +11,8 @@ export default function LoginScreen({ onLogin, onGoRegister, onBiometria, biomet
   const [mostrarSenha, setMostrarSenha] = useState(false);
 
   const handleLogin = () => {
-    if (!email.trim() || !senha.trim()) {
-      Alert.alert('Atenção', 'Preencha e-mail e senha.');
-      return;
-    }
+    if (!email.trim()) { Alert.alert('E-mail obrigatório', 'Por favor, informe seu e-mail.'); return; }
+    if (!senha.trim()) { Alert.alert('Senha obrigatória', 'Por favor, informe sua senha.'); return; }
     onLogin(email.trim().toLowerCase(), senha);
   };
 
@@ -33,8 +25,9 @@ export default function LoginScreen({ onLogin, onGoRegister, onBiometria, biomet
 
         {/* Logo / Header */}
         <View style={styles.header}>
-          <Text style={styles.emoji}>🍦</Text>
-          <Text style={styles.brand}>Gelato MEC</Text>
+          <View style={styles.logoContainer}>
+            <Image source={logo} style={styles.logoImg} resizeMode="cover" />
+          </View>
           <Text style={styles.tagline}>Sabor que derrete o coração</Text>
         </View>
 
@@ -115,15 +108,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
   },
-  emoji: {
-    fontSize: 72,
+  logoContainer: {
+    width: 220,
+    height: 120,
+    borderRadius: 16,
+    overflow: 'hidden',
     marginBottom: 8,
   },
-  brand: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: 1,
+  logoImg: {
+    width: '100%',
+    height: '100%',
   },
   tagline: {
     fontSize: 14,
