@@ -1,6 +1,6 @@
 # Gelato MEC 🍦
 
-Bem-vindo ao repositório do **Gelato MEC** — aplicativo mobile da sorveteria Gelato MEC, desenvolvido em React Native com Expo.
+Bem-vindo ao repositório do **Gelato MEC** — aplicativo mobile da sorveteria Gelato MEC, desenvolvido em React Native com Expo. 100% Javascript!
 
 > *"Sabor que derrete o coração"*
 
