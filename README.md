@@ -185,5 +185,5 @@ sorvete-mec/
 | Nome | |
 |---|---|
 | **Caio Santos** | Desenvolvimento |
-| **Mellani** | Desenvolvimento |
-| **Aline** | Desenvolvimento |
+| **Mellani Lyvian** | Desenvolvimento |
+| **Aline Simas** | Desenvolvimento |
