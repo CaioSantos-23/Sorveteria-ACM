@@ -1,20 +1,20 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert, FlatList, SafeAreaView,
+  ActivityIndicator, Alert, FlatList, SafeAreaView, TextInput,
 } from 'react-native';
 import MapView, { Marker, Circle } from 'react-native-maps';
+import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 
-// ⚠️ Substitua pela sua chave da Google Maps API
-const GOOGLE_API_KEY = 'SUA_CHAVE_AQUI';
-const RAIO_KM = 10000; // 10km em metros
+const RAIO_KM = 10000;
 
-export default function MapScreen({ onVoltar }) {
+export default function MapScreen({ lojas = [] }) {
   const [localizacao, setLocalizacao] = useState(null);
-  const [sorveterias, setSorveterias] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [selecionada, setSelecionada] = useState(null);
+  const [busca, setBusca] = useState('');
+  const [pertoDeMin, setPertoDeMin] = useState(false);
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -25,14 +25,11 @@ export default function MapScreen({ onVoltar }) {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permissão negada', 'Precisamos da sua localização para mostrar as sorveterias próximas.');
         setCarregando(false);
         return;
       }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-      const { latitude, longitude } = loc.coords;
-      setLocalizacao({ latitude, longitude });
-      await buscarSorveterias(latitude, longitude);
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setLocalizacao({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
     } catch (e) {
       Alert.alert('Erro', 'Não foi possível obter sua localização.');
     } finally {
@@ -40,190 +37,318 @@ export default function MapScreen({ onVoltar }) {
     }
   };
 
-  const buscarSorveterias = async (lat, lng) => {
-    if (GOOGLE_API_KEY === 'SUA_CHAVE_AQUI') {
-      // Dados fictícios para demonstração
-      setSorveterias([
-        { place_id: '1', name: 'Gelato MEC - Centro', vicinity: 'Rua das Flores, 123', geometry: { location: { lat: lat + 0.01, lng: lng + 0.008 } }, rating: 4.8 },
-        { place_id: '2', name: 'Gelato MEC - Norte', vicinity: 'Av. Principal, 456', geometry: { location: { lat: lat + 0.03, lng: lng - 0.015 } }, rating: 4.6 },
-        { place_id: '3', name: 'Gelato MEC - Sul', vicinity: 'Praça da Liberdade, 78', geometry: { location: { lat: lat - 0.025, lng: lng + 0.02 } }, rating: 4.9 },
-        { place_id: '4', name: 'Gelato MEC - Shopping', vicinity: 'Shopping Center, Loja 42', geometry: { location: { lat: lat - 0.01, lng: lng - 0.03 } }, rating: 4.7 },
-      ]);
-      return;
-    }
+  const distancia = (loja) => {
+    if (!localizacao || !loja.lat || !loja.lng) return Infinity;
+    const dLat = loja.lat - localizacao.latitude;
+    const dLng = loja.lng - localizacao.longitude;
+    return Math.sqrt(dLat * dLat + dLng * dLng);
+  };
 
-    try {
-      const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${RAIO_KM}&keyword=sorveteria+gelato&key=${GOOGLE_API_KEY}`;
-      const response = await fetch(url);
-      const data = await response.json();
-      if (data.results) setSorveterias(data.results);
-    } catch (e) {
-      Alert.alert('Erro', 'Não foi possível buscar as sorveterias.');
+  let listaFiltrada = lojas.filter((l) =>
+    (l.nome + ' ' + (l.cidade || '') + ' ' + (l.endereco || ''))
+      .toLowerCase()
+      .includes(busca.toLowerCase())
+  );
+
+  if (pertoDeMin) {
+    listaFiltrada = [...listaFiltrada].sort((a, b) => distancia(a) - distancia(b));
+  }
+
+  const focarNoLocal = (loja) => {
+    setSelecionada(loja.id);
+    if (loja.lat && loja.lng) {
+      mapRef.current?.animateToRegion({
+        latitude: loja.lat,
+        longitude: loja.lng,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }, 800);
     }
   };
 
-  const focarNoLocal = (place) => {
-    setSelecionada(place);
-    mapRef.current?.animateToRegion({
-      latitude: place.geometry.location.lat,
-      longitude: place.geometry.location.lng,
-      latitudeDelta: 0.01,
-      longitudeDelta: 0.01,
-    }, 800);
-  };
+  const lojasSemLocalizacao = lojas.filter((l) => !l.lat || !l.lng);
+  const marcadores = localizacao
+    ? lojas.filter((l) => l.lat && l.lng)
+    : [];
 
   if (carregando) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color="#3D1A78" />
-        <Text style={styles.loadingText}>Buscando sorveterias próximas...</Text>
+        <Text style={styles.loadingText}>Obtendo localização...</Text>
       </View>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onVoltar} style={styles.voltarBtn}>
-          <Text style={styles.voltarText}>← Voltar</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitulo}>Franquias no Mapa</Text>
-        <View style={{ width: 70 }} />
+      {/* AppBar */}
+      <View style={styles.appbar}>
+        <Text style={styles.appbarTitle}>Franquias no Mapa</Text>
       </View>
 
       {/* Mapa */}
-      {localizacao && (
-        <MapView
-          ref={mapRef}
-          style={styles.mapa}
-          initialRegion={{
-            latitude: localizacao.latitude,
-            longitude: localizacao.longitude,
-            latitudeDelta: 0.12,
-            longitudeDelta: 0.12,
-          }}
-          showsUserLocation
-          showsMyLocationButton
-        >
-          {/* Círculo de 10km */}
-          <Circle
-            center={localizacao}
-            radius={RAIO_KM}
-            strokeColor="rgba(61,26,120,0.4)"
-            fillColor="rgba(61,26,120,0.05)"
-            strokeWidth={2}
-          />
-
-          {/* Markers das sorveterias */}
-          {sorveterias.map((place) => (
-            <Marker
-              key={place.place_id}
-              coordinate={{
-                latitude: place.geometry.location.lat,
-                longitude: place.geometry.location.lng,
-              }}
-              title={place.name}
-              description={place.vicinity}
-              pinColor="#FF4D8D"
-              onPress={() => setSelecionada(place)}
+      <View style={styles.mapaContainer}>
+        {localizacao ? (
+          <MapView
+            ref={mapRef}
+            style={StyleSheet.absoluteFillObject}
+            initialRegion={{
+              latitude: localizacao.latitude,
+              longitude: localizacao.longitude,
+              latitudeDelta: 0.12,
+              longitudeDelta: 0.12,
+            }}
+            showsUserLocation
+          >
+            <Circle
+              center={localizacao}
+              radius={RAIO_KM}
+              strokeColor="rgba(61,26,120,0.4)"
+              fillColor="rgba(61,26,120,0.07)"
+              strokeWidth={2}
             />
-          ))}
-        </MapView>
-      )}
+            {marcadores.map((l) => (
+              <Marker
+                key={l.id}
+                coordinate={{ latitude: l.lat, longitude: l.lng }}
+                title={l.nome}
+                description={l.endereco}
+                pinColor="#FF4D8D"
+                onPress={() => setSelecionada(l.id)}
+              />
+            ))}
+          </MapView>
+        ) : (
+          <View style={styles.semLocalizacao}>
+            <Text style={styles.semLocalizacaoTexto}>📍 Permita o acesso à localização para ver o mapa</Text>
+          </View>
+        )}
 
-      {/* Lista de sorveterias */}
+        {/* Search + perto de mim flutuante sobre o mapa */}
+        <View style={styles.buscaFlutuante}>
+          <View style={styles.searchBar}>
+            <Ionicons name="search-outline" size={19} color="#9090A0" />
+            <TextInput
+              testID="input-busca-mapa"
+              style={styles.searchInput}
+              placeholder="Pesquisar franquia..."
+              placeholderTextColor="#9090A0"
+              value={busca}
+              onChangeText={setBusca}
+            />
+          </View>
+          <TouchableOpacity
+            testID="btn-perto-mim"
+            style={[styles.pertoBtn, pertoDeMin && styles.pertoBtnAtivo]}
+            onPress={() => setPertoDeMin((v) => !v)}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="locate-outline"
+              size={22}
+              color={pertoDeMin ? '#fff' : '#3D1A78'}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Lista de franquias */}
       <View style={styles.lista}>
         <Text style={styles.listaTitulo}>
-          {sorveterias.length} franquia{sorveterias.length !== 1 ? 's' : ''} num raio de 10km
+          {pertoDeMin ? 'Ordenadas por proximidade' : `${listaFiltrada.length} franquia${listaFiltrada.length !== 1 ? 's' : ''} num raio de 10km`}
         </Text>
-        <FlatList
-          data={sorveterias}
-          keyExtractor={(item) => item.place_id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 12, gap: 10 }}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[styles.cardLoja, selecionada?.place_id === item.place_id && styles.cardLojaSelecionada]}
-              onPress={() => focarNoLocal(item)}
-            >
-              <Text style={styles.cardLojaEmoji}>🍦</Text>
-              <Text style={styles.cardLojaNome} numberOfLines={1}>{item.name}</Text>
-              <Text style={styles.cardLojaEndereco} numberOfLines={1}>{item.vicinity}</Text>
-              {item.rating && (
-                <Text style={styles.cardLojaRating}>⭐ {item.rating}</Text>
-              )}
-            </TouchableOpacity>
-          )}
-        />
+        {listaFiltrada.length === 0 ? (
+          <Text style={styles.semResultado}>Nenhuma franquia encontrada</Text>
+        ) : (
+          <FlatList
+            data={listaFiltrada}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.listaContent}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[styles.cardLoja, selecionada === item.id && styles.cardLojaSelecionada]}
+                onPress={() => focarNoLocal(item)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.cardLojaNome} numberOfLines={1}>{item.nome}</Text>
+                <Text style={[styles.cardLojaEndereco, selecionada === item.id && { color: 'rgba(255,255,255,0.8)' }]} numberOfLines={1}>
+                  {item.endereco}
+                </Text>
+                <Text style={[styles.cardLojaCidade, selecionada === item.id && { color: 'rgba(255,255,255,0.7)' }]} numberOfLines={1}>
+                  {item.cidade}
+                </Text>
+                {item.nota && (
+                  <View style={styles.cardLojaRating}>
+                    <Ionicons name="star" size={14} color="#E8A100" />
+                    <Text style={styles.cardLojaRatingText}>{item.nota}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
+          />
+        )}
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F0FF' },
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText: { color: '#3D1A78', fontSize: 15, fontWeight: '600' },
-  header: {
-    flexDirection: 'row',
+  container: { flex: 1, backgroundColor: '#3D1A78' },
+  loading: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: '#F4F0FF',
+  },
+  loadingText: { color: '#3D1A78', fontSize: 15, fontWeight: '600' },
+  appbar: {
+    backgroundColor: '#3D1A78',
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: '#3D1A78',
   },
-  voltarBtn: { paddingVertical: 6, paddingHorizontal: 4 },
-  voltarText: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  headerTitulo: { color: '#fff', fontSize: 17, fontWeight: '800' },
-  mapa: { flex: 1 },
-  lista: {
+  appbarTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  mapaContainer: {
+    height: 340,
+    position: 'relative',
+    backgroundColor: '#dDEbe0',
+  },
+  semLocalizacao: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#e8f0ea',
+  },
+  semLocalizacaoTexto: {
+    fontSize: 14,
+    color: '#555566',
+    fontWeight: '600',
+    textAlign: 'center',
+    paddingHorizontal: 32,
+  },
+  buscaFlutuante: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    right: 14,
+    flexDirection: 'row',
+    gap: 10,
+    zIndex: 10,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#fff',
-    paddingTop: 12,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    gap: 8,
+    shadowColor: '#3D1A78',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1A1A2E',
+    padding: 0,
+  },
+  pertoBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#3D1A78',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  pertoBtnAtivo: {
+    backgroundColor: '#FF4D8D',
+  },
+  lista: {
+    flex: 1,
+    backgroundColor: '#F4F0FF',
+    paddingTop: 14,
     paddingBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 8,
   },
   listaTitulo: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
     color: '#3D1A78',
     paddingHorizontal: 16,
     marginBottom: 10,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
+    opacity: 0.85,
+  },
+  semResultado: {
+    textAlign: 'center',
+    color: '#9090A0',
+    fontWeight: '700',
+    paddingVertical: 16,
+  },
+  listaContent: {
+    paddingHorizontal: 16,
+    gap: 12,
   },
   cardLoja: {
-    width: 150,
-    backgroundColor: '#F4F0FF',
-    borderRadius: 14,
-    padding: 12,
-    alignItems: 'center',
+    width: 200,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 14,
+    shadowColor: '#3D1A78',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 2.5,
+    borderColor: 'transparent',
   },
   cardLojaSelecionada: {
     backgroundColor: '#3D1A78',
+    borderColor: '#FF4D8D',
   },
-  cardLojaEmoji: { fontSize: 28, marginBottom: 6 },
   cardLojaNome: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1a1a2e',
-    textAlign: 'center',
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1A1A2E',
+    marginBottom: 3,
   },
   cardLojaEndereco: {
-    fontSize: 11,
-    color: '#888',
-    textAlign: 'center',
-    marginTop: 2,
+    fontSize: 13,
+    color: '#555566',
+    fontWeight: '600',
+  },
+  cardLojaCidade: {
+    fontSize: 13,
+    color: '#555566',
+    fontWeight: '600',
+    marginBottom: 8,
   },
   cardLojaRating: {
-    fontSize: 12,
-    color: '#FF9500',
-    marginTop: 4,
-    fontWeight: '600',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  cardLojaRatingText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#E8A100',
   },
 });

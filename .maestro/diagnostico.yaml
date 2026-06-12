@@ -1,0 +1,26 @@
+appId: host.exp.exponent
+name: Diagnostico tap apos clearState
+---
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+- openLink: exp://127.0.0.1:8081
+
+- extendedWaitUntil:
+    visible:
+      id: "btn-criar-conta"
+    timeout: 30000
+
+- waitForAnimationToEnd
+
+- runScript:
+    file: delay_5s.js
+
+# Testa botao Entrar (TouchableOpacity) - deve abrir alerta E-mail obrigatorio
+- tapOn:
+    text: "Entrar"
+
+- assertVisible:
+    text: "E-mail obrigatório"

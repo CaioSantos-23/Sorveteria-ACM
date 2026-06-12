@@ -1,0 +1,16 @@
+appId: host.exp.exponent
+name: Login de usuario comum
+---
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+- runFlow: _criar_usuario.yaml
+
+- assertVisible:
+    text: "Início"
+- assertVisible:
+    text: "Franquias"
+- assertNotVisible:
+    text: "Painel"

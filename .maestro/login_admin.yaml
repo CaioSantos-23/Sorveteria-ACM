@@ -1,0 +1,20 @@
+appId: host.exp.exponent
+name: Login de administrador
+---
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+- runFlow: _criar_admin.yaml
+
+- assertVisible:
+    text: "Painel"
+- assertVisible:
+    text: "Produtos"
+- assertVisible:
+    text: "Lojas"
+- assertVisible:
+    text: "Equipe"
+- assertNotVisible:
+    text: "Início"

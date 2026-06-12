@@ -180,6 +180,82 @@ sorvete-mec/
 
 ---
 
+## 🧪 Testes Automatizados (Maestro)
+
+Os testes de UI são escritos com [Maestro](https://maestro.mobile.dev/) e ficam na pasta `.maestro/`.
+
+### Pré-requisitos
+
+1. **Maestro CLI** instalado:
+   ```bash
+   curl -Ls "https://get.maestro.mobile.dev" | bash
+   ```
+
+2. **Celular Android** conectado via USB com USB Debugging ativado
+
+3. **Expo Go** aberto com o projeto carregado (`npx expo start` rodando)
+
+4. **ADB port forwarding** — executar sempre que reconectar o celular:
+   ```bash
+   adb reverse tcp:8081 tcp:8081
+   ```
+
+5. **Desativar autofill do Android** — evita dialogs durante digitação:
+   ```bash
+   adb shell settings put secure autofill_service null
+   ```
+
+6. **Conceder permissão de localização** ao Expo Go — evita dialogs no teste do mapa:
+   ```bash
+   adb shell pm grant host.exp.exponent android.permission.ACCESS_COARSE_LOCATION
+   adb shell pm grant host.exp.exponent android.permission.ACCESS_FINE_LOCATION
+   ```
+
+### Rodando os testes (Windows)
+
+Na raiz do projeto existe o `maestro.bat`.
+
+**Rodar um teste específico:**
+```bash
+.\maestro.bat test .maestro/login_usuario.yaml
+.\maestro.bat test .maestro/login_admin.yaml
+.\maestro.bat test .maestro/cadastro.yaml
+.\maestro.bat test .maestro/home_produtos.yaml
+.\maestro.bat test .maestro/mapa.yaml
+.\maestro.bat test .maestro/admin_produtos.yaml
+.\maestro.bat test .maestro/admin_lojas.yaml
+.\maestro.bat test .maestro/admin_equipe.yaml
+.\maestro.bat test .maestro/admin_perfil.yaml
+```
+
+**Rodar todos os testes em sequência:**
+```bash
+.\maestro.bat test .maestro/
+```
+
+### Descrição dos testes
+
+| Arquivo | O que testa |
+|---|---|
+| `cadastro.yaml` | Criação de nova conta |
+| `login_usuario.yaml` | Login de usuário comum e navegação na home |
+| `login_admin.yaml` | Login de administrador e painel admin |
+| `home_produtos.yaml` | Detalhe de produto, botão voltar e aba Franquias |
+| `mapa.yaml` | Mapa de franquias, busca e botão "Perto de mim" |
+| `admin_produtos.yaml` | Adicionar novo produto como administrador |
+| `admin_lojas.yaml` | Cadastrar nova franquia como administrador |
+| `admin_equipe.yaml` | Adicionar membro da equipe admin |
+| `admin_perfil.yaml` | Editar perfil do administrador |
+
+### Observações
+
+- Cada teste usa `clearState: true` — o Expo Go é reiniciado do zero antes de cada teste
+- Os sub-flows `_criar_usuario.yaml` e `_criar_admin.yaml` fazem setup de autenticação reutilizável
+- Em caso de falha intermitente no carregamento inicial, basta rodar o teste novamente
+- Se o celular for desconectado durante os testes, rode novamente `adb reverse tcp:8081 tcp:8081`
+
+---
+
 ## 👩‍💻 Desenvolvedores
 
 | Nome | |

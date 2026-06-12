@@ -2,14 +2,30 @@ import React, { useState } from 'react';
 import {
   View, Text, Image, TextInput, TouchableOpacity,
   StyleSheet, ScrollView, KeyboardAvoidingView,
-  Platform, Alert, SafeAreaView,
+  Platform, Alert, SafeAreaView, StatusBar,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
+function formatarTelefone(value) {
+  const nums = value.replace(/\D/g, '').slice(0, 11);
+  if (nums.length <= 2) return nums.length ? `(${nums}` : '';
+  if (nums.length <= 7) return `(${nums.slice(0, 2)}) ${nums.slice(2)}`;
+  return `(${nums.slice(0, 2)}) ${nums.slice(2, 7)}-${nums.slice(7)}`;
+}
+
+function formatarData(value) {
+  const nums = value.replace(/\D/g, '').slice(0, 8);
+  if (nums.length <= 2) return nums;
+  if (nums.length <= 4) return `${nums.slice(0, 2)}/${nums.slice(2)}`;
+  return `${nums.slice(0, 2)}/${nums.slice(2, 4)}/${nums.slice(4)}`;
+}
+
 export default function ProfileScreen({ usuario, perfil, onSalvar, onVoltar, onSair }) {
   const [nome, setNome] = useState(perfil?.nome || usuario?.nome || '');
+  const [nomeSocial, setNomeSocial] = useState(perfil?.nomeSocial || '');
   const [bio, setBio] = useState(perfil?.bio || '');
   const [telefone, setTelefone] = useState(perfil?.telefone || '');
+  const [endereco, setEndereco] = useState(perfil?.endereco || '');
   const [cidade, setCidade] = useState(perfil?.cidade || '');
   const [nascimento, setNascimento] = useState(perfil?.nascimento || '');
   const [fotoUri, setFotoUri] = useState(perfil?.fotoUri || null);
@@ -38,18 +54,19 @@ export default function ProfileScreen({ usuario, perfil, onSalvar, onVoltar, onS
 
   const iniciais = (usuario?.nome || 'U')
     .split(' ')
+    .filter(Boolean)
     .map((p) => p[0])
     .slice(0, 2)
     .join('')
     .toUpperCase();
 
   const handleSalvar = () => {
-    onSalvar({ nome, bio, telefone, cidade, nascimento, fotoUri });
+    onSalvar({ nome, nomeSocial, bio, telefone, endereco, cidade, nascimento, fotoUri });
     Alert.alert('Perfil salvo!', 'Suas informações foram atualizadas com sucesso.');
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -63,114 +80,144 @@ export default function ProfileScreen({ usuario, perfil, onSalvar, onVoltar, onS
           <View style={{ width: 70 }} />
         </View>
 
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        {/* Conteúdo */}
+        <View style={styles.content}>
+          <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-          {/* Avatar */}
-          <View style={styles.avatarArea}>
-            <TouchableOpacity onPress={escolherFoto} style={styles.avatarWrapper} activeOpacity={0.8}>
-              {fotoUri ? (
-                <Image source={{ uri: fotoUri }} style={styles.avatarFoto} />
-              ) : (
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarTexto}>{iniciais}</Text>
+            {/* Avatar / Ícone de exibição */}
+            <View style={styles.avatarArea}>
+              <TouchableOpacity onPress={escolherFoto} style={styles.avatarWrapper} activeOpacity={0.8}>
+                {fotoUri ? (
+                  <Image source={{ uri: fotoUri }} style={styles.avatarFoto} />
+                ) : (
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarTexto}>{iniciais}</Text>
+                  </View>
+                )}
+                <View style={styles.avatarCameraBtn}>
+                  <Text style={{ fontSize: 13 }}>📷</Text>
                 </View>
-              )}
-              <View style={styles.avatarCameraBtn}>
-                <Text style={{ fontSize: 14 }}>📷</Text>
-              </View>
-            </TouchableOpacity>
-            <Text style={styles.avatarNome}>{usuario?.nome}</Text>
-            <Text style={styles.avatarEmail}>{usuario?.email}</Text>
-          </View>
-
-          {/* Bio */}
-          <View style={styles.secao}>
-            <Text style={styles.secaoTitulo}>Sobre mim</Text>
-            <Text style={styles.label}>Bio</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Conte um pouco sobre você..."
-              placeholderTextColor="#aaa"
-              multiline
-              numberOfLines={3}
-              value={bio}
-              onChangeText={setBio}
-            />
-          </View>
-
-          {/* Informações */}
-          <View style={styles.secao}>
-            <Text style={styles.secaoTitulo}>Informações</Text>
-
-            <Text style={styles.label}>Nome de exibição</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Como quer ser chamado?"
-              placeholderTextColor="#aaa"
-              value={nome}
-              onChangeText={setNome}
-              autoCapitalize="words"
-            />
-
-            <Text style={styles.label}>Telefone</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="(00) 00000-0000"
-              placeholderTextColor="#aaa"
-              keyboardType="phone-pad"
-              value={telefone}
-              onChangeText={setTelefone}
-            />
-
-            <Text style={styles.label}>Cidade</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Sua cidade"
-              placeholderTextColor="#aaa"
-              value={cidade}
-              onChangeText={setCidade}
-              autoCapitalize="words"
-            />
-
-            <Text style={styles.label}>Data de nascimento</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="DD/MM/AAAA"
-              placeholderTextColor="#aaa"
-              keyboardType="number-pad"
-              value={nascimento}
-              onChangeText={setNascimento}
-            />
-          </View>
-
-          {/* Conta (só leitura) */}
-          <View style={styles.secao}>
-            <Text style={styles.secaoTitulo}>Conta</Text>
-            <View style={styles.infoLinha}>
-              <Text style={styles.infoLabel}>E-mail</Text>
-              <Text style={styles.infoValor}>{usuario?.email}</Text>
+              </TouchableOpacity>
+              <Text style={styles.avatarNome}>{nomeSocial || usuario?.nome}</Text>
+              <Text style={styles.avatarEmail}>{usuario?.email}</Text>
             </View>
-          </View>
 
-          <TouchableOpacity style={styles.botao} onPress={handleSalvar}>
-            <Text style={styles.botaoText}>Salvar Perfil</Text>
-          </TouchableOpacity>
+            {/* Sobre mim */}
+            <View style={styles.secao}>
+              <Text style={styles.secaoTitulo}>Sobre mim</Text>
+              <Text style={styles.label}>Bio</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Conte um pouco sobre você..."
+                placeholderTextColor="#aaa"
+                multiline
+                numberOfLines={3}
+                value={bio}
+                onChangeText={setBio}
+              />
+            </View>
 
-          <TouchableOpacity style={styles.botaoSair} onPress={onSair}>
-            <Text style={styles.botaoSairText}>Sair da conta</Text>
-          </TouchableOpacity>
+            {/* Informações pessoais */}
+            <View style={styles.secao}>
+              <Text style={styles.secaoTitulo}>Informações Pessoais</Text>
 
-          <View style={{ height: 40 }} />
-        </ScrollView>
+              <Text style={styles.label}>Nome completo</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Seu nome completo"
+                placeholderTextColor="#aaa"
+                value={nome}
+                onChangeText={setNome}
+                autoCapitalize="words"
+              />
+
+              <Text style={styles.label}>Nome social</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Como prefere ser chamado(a)?"
+                placeholderTextColor="#aaa"
+                value={nomeSocial}
+                onChangeText={setNomeSocial}
+                autoCapitalize="words"
+              />
+
+              <Text style={styles.label}>Data de nascimento</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="DD/MM/AAAA"
+                placeholderTextColor="#aaa"
+                keyboardType="number-pad"
+                value={nascimento}
+                onChangeText={(t) => setNascimento(formatarData(t))}
+                maxLength={10}
+              />
+            </View>
+
+            {/* Contato */}
+            <View style={styles.secao}>
+              <Text style={styles.secaoTitulo}>Contato</Text>
+
+              <Text style={styles.label}>Telefone</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="(00) 00000-0000"
+                placeholderTextColor="#aaa"
+                keyboardType="phone-pad"
+                value={telefone}
+                onChangeText={(t) => setTelefone(formatarTelefone(t))}
+                maxLength={15}
+              />
+
+              <Text style={styles.label}>Endereço</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Rua, número, bairro"
+                placeholderTextColor="#aaa"
+                value={endereco}
+                onChangeText={setEndereco}
+                autoCapitalize="words"
+              />
+
+              <Text style={styles.label}>Cidade</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Sua cidade"
+                placeholderTextColor="#aaa"
+                value={cidade}
+                onChangeText={setCidade}
+                autoCapitalize="words"
+              />
+            </View>
+
+            {/* Conta (só leitura) */}
+            <View style={styles.secao}>
+              <Text style={styles.secaoTitulo}>Conta</Text>
+              <View style={styles.infoLinha}>
+                <Text style={styles.infoLabel}>E-mail</Text>
+                <Text style={styles.infoValor}>{usuario?.email}</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.botao} onPress={handleSalvar}>
+              <Text style={styles.botaoText}>Salvar Perfil</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.botaoSair} onPress={onSair}>
+              <Text style={styles.botaoSairText}>Sair da conta</Text>
+            </TouchableOpacity>
+
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: '#F4F0FF',
+    backgroundColor: '#3D1A78',
   },
   header: {
     flexDirection: 'row',
@@ -183,6 +230,7 @@ const styles = StyleSheet.create({
   voltarBtn: {
     paddingVertical: 6,
     paddingHorizontal: 4,
+    minWidth: 70,
   },
   voltarText: {
     color: '#fff',
@@ -193,6 +241,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 17,
     fontWeight: '800',
+  },
+  content: {
+    flex: 1,
+    backgroundColor: '#F4F0FF',
   },
   scroll: {
     padding: 16,
@@ -250,11 +302,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800',
     color: '#1a1a2e',
+    marginBottom: 2,
   },
   avatarEmail: {
     fontSize: 13,
     color: '#888',
-    marginTop: 4,
   },
   secao: {
     backgroundColor: '#fff',
@@ -310,13 +362,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1a1a2e',
     fontWeight: '600',
+    flexShrink: 1,
+    marginLeft: 8,
+    textAlign: 'right',
   },
   botao: {
     backgroundColor: '#FF4D8D',
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
     shadowColor: '#FF4D8D',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,

@@ -2,19 +2,51 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 
+// Auth
 import SplashScreen from './src/screens/SplashScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
+
+// Usuário
 import HomeScreen from './src/screens/HomeScreen';
 import ProductDetailScreen from './src/screens/ProductDetailScreen';
 import AddProductScreen from './src/screens/AddProductScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import MapScreen from './src/screens/MapScreen';
-import Sidebar from './src/components/Sidebar';
 
+// Admin
+import AdminDashboardScreen from './src/screens/AdminDashboardScreen';
+import AdminProdutosScreen from './src/screens/AdminProdutosScreen';
+import AdminLojasScreen from './src/screens/AdminLojasScreen';
+import AdminEquipeScreen from './src/screens/AdminEquipeScreen';
+import AdminPerfilScreen from './src/screens/AdminPerfilScreen';
+
+// Componentes
+import TabBar from './src/components/TabBar';
+
+// Hooks
 import { useAuth } from './src/hooks/useAuth';
 import { useProducts } from './src/hooks/useProducts';
 import { useProfile } from './src/hooks/useProfile';
+import { useLojas } from './src/hooks/useLojas';
+import { useAdmins } from './src/hooks/useAdmins';
+
+const TABS_USUARIO = [
+  { id: 'home', label: 'Início', icon: 'home' },
+  { id: 'mapa', label: 'Franquias', icon: 'map' },
+];
+
+const TABS_ADMIN = [
+  { id: 'painel', label: 'Painel', icon: 'chart' },
+  { id: 'produtos', label: 'Produtos', icon: 'grid' },
+  { id: 'lojas', label: 'Lojas', icon: 'store' },
+  { id: 'equipe', label: 'Equipe', icon: 'team' },
+];
+
+function detectaAdmin(email) {
+  const e = (email || '').toLowerCase();
+  return e.includes('admin') || e.includes('@gelatomec.com');
+}
 
 export default function App() {
   const [splashFim, setSplashFim] = useState(false);
@@ -31,126 +63,129 @@ export default function App() {
     ativarBiometria,
   } = useAuth();
 
-  const { produtos, adicionarProduto } = useProducts();
-  const { perfil, salvarPerfil } = useProfile();
+  const logado = !!usuarioLogado;
+  const { produtos, adicionarProduto, editarProduto, deletarProduto } = useProducts(logado);
+  const { lojas, adicionarLoja, editarLoja, deletarLoja } = useLojas(logado);
+  const { admins, adicionarAdmin, deletarAdmin } = useAdmins(logado);
+  const { perfil, salvarPerfil } = useProfile(usuarioLogado?.email);
 
-  const [tela, setTela] = useState('login');
-  const [telaInterna, setTelaInterna] = useState('home');
+  // Auth state
+  const [telaAuth, setTelaAuth] = useState('login');
+
+  // Navegação usuário
+  const [abaUser, setAbaUser] = useState('home');
   const [produtoSelecionado, setProdutoSelecionado] = useState(null);
-  const [sidebarAberta, setSidebarAberta] = useState(false);
-  const [telaAnterior, setTelaAnterior] = useState(null);
+  const [verPerfil, setVerPerfil] = useState(false);
 
-  const navegar = (destino) => {
-    setTelaAnterior(telaInterna);
-    setTelaInterna(destino);
-  };
+  // Navegação admin
+  const [abaAdmin, setAbaAdmin] = useState('painel');
+  const [verPerfilAdmin, setVerPerfilAdmin] = useState(false);
+  const [produtoParaEditar, setProdutoParaEditar] = useState(null);
+  const [telaAdicionarProduto, setTelaAdicionarProduto] = useState(false);
 
-  const voltar = () => {
-    setTelaInterna(telaAnterior || 'home');
-    setTelaAnterior(null);
-  };
+  const ehAdmin = detectaAdmin(usuarioLogado?.email);
 
-  // --- Auth ---
+  // ========================
+  // HANDLERS AUTH
+  // ========================
   const handleLogin = async (email, senha) => {
     const ok = await login(email, senha);
     if (!ok) { Alert.alert('Erro', 'E-mail ou senha incorretos.'); return; }
-    setTela('app');
-    setTelaInterna('home');
   };
 
-  const handleCadastro = async (dados, callbackBiometria) => {
+  const handleCadastro = async (dados) => {
     const resultado = await cadastrar(dados);
     if (resultado === 'duplicado') {
       Alert.alert('Atenção', 'Este e-mail já está cadastrado.');
       return;
     }
-
-    if (biometriaDisponivel && callbackBiometria) {
+    if (biometriaDisponivel) {
       Alert.alert(
         'Conta criada!',
-        `Bem-vindo(a), ${dados.nome}!\n\nDeseja ativar login por biometria (digital/Face ID)?`,
+        `Bem-vindo(a), ${dados.nome}!\n\nDeseja ativar login por biometria?`,
         [
-          { text: 'Agora não', onPress: () => setTela('login') },
+          { text: 'Agora não', onPress: () => setTelaAuth('login') },
           {
-            text: 'Ativar biometria',
-            onPress: async () => {
-              const ok = await ativarBiometria(dados);
-              if (ok) {
-                Alert.alert('Biometria ativada!', 'Agora você pode entrar com digital ou Face ID.', [
-                  { text: 'OK', onPress: () => setTela('login') },
-                ]);
-              } else {
-                setTela('login');
-              }
+            text: 'Ativar', onPress: async () => {
+              await ativarBiometria(dados);
+              setTelaAuth('login');
             },
           },
         ]
       );
     } else {
       Alert.alert('Conta criada!', `Bem-vindo(a), ${dados.nome}! Faça o login.`, [
-        { text: 'OK', onPress: () => setTela('login') },
+        { text: 'OK', onPress: () => setTelaAuth('login') },
       ]);
     }
   };
 
   const handleBiometria = async () => {
-    const ok = await autenticarBiometria();
-    if (ok) {
-      setTela('app');
-      setTelaInterna('home');
-    }
+    await autenticarBiometria();
   };
 
   const handleSair = () => {
     logout();
-    setTela('login');
-    setTelaInterna('home');
-    setSidebarAberta(false);
+    setTelaAuth('login');
+    setAbaUser('home');
+    setAbaAdmin('painel');
+    setProdutoSelecionado(null);
+    setVerPerfil(false);
+    setVerPerfilAdmin(false);
+    setTelaAdicionarProduto(false);
+    setProdutoParaEditar(null);
   };
 
-  // --- Produtos ---
-  const handleAdicionarProduto = async (produto) => {
-    const novo = await adicionarProduto(produto);
-    Alert.alert('Produto salvo!', `${novo.nome} foi adicionado.`, [
-      { text: 'OK', onPress: () => setTelaInterna('home') },
+  // ========================
+  // HANDLERS PRODUTOS
+  // ========================
+  const handleAdicionarProduto = async (dados) => {
+    const novo = await adicionarProduto(dados);
+    Alert.alert('Produto salvo!', `${novo.name} foi adicionado.`, [
+      { text: 'OK', onPress: () => { setTelaAdicionarProduto(false); setProdutoParaEditar(null); } },
     ]);
   };
 
-  // --- Sidebar ---
-  const handleSidebarNavigate = (destino) => {
-    setSidebarAberta(false);
-    navegar(destino);
+  const handleEditarProduto = async (dados) => {
+    await editarProduto(produtoParaEditar.id, dados);
+    Alert.alert('Produto atualizado!', `${dados.name} foi atualizado.`, [
+      { text: 'OK', onPress: () => { setTelaAdicionarProduto(false); setProdutoParaEditar(null); } },
+    ]);
   };
 
-  // =====================
+  const abrirEdicaoProduto = (produto) => {
+    setProdutoParaEditar(produto);
+    setTelaAdicionarProduto(true);
+  };
+
+  // ========================
   // SPLASH
-  // =====================
+  // ========================
   if (!splashFim || carregando) {
     return <SplashScreen onFim={() => setSplashFim(true)} />;
   }
 
-  // =====================
-  // TELAS DE AUTH
-  // =====================
-  if (tela === 'cadastro') {
-    return (
-      <>
-        <RegisterScreen
-          onRegister={handleCadastro}
-          onGoLogin={() => setTela('login')}
-          onAtivarBiometria={biometriaDisponivel}
-        />
-        <StatusBar style="light" />
-      </>
-    );
-  }
-
-  if (tela === 'login') {
+  // ========================
+  // AUTH
+  // ========================
+  if (!usuarioLogado) {
+    if (telaAuth === 'cadastro') {
+      return (
+        <>
+          <RegisterScreen
+            onRegister={handleCadastro}
+            onGoLogin={() => setTelaAuth('login')}
+            onAtivarBiometria={biometriaDisponivel}
+          />
+          <StatusBar style="light" />
+        </>
+      );
+    }
     return (
       <>
         <LoginScreen
           onLogin={handleLogin}
-          onGoRegister={() => setTela('cadastro')}
+          onGoRegister={() => setTelaAuth('cadastro')}
           onBiometria={handleBiometria}
           biometriaDisponivel={biometriaDisponivel}
           ultimoUsuario={ultimoUsuario}
@@ -160,57 +195,135 @@ export default function App() {
     );
   }
 
-  // =====================
-  // APP (pós-login)
-  // =====================
-  return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
+  // ========================
+  // APP USUÁRIO
+  // ========================
+  if (!ehAdmin) {
+    // Sub-telas sem tab bar
+    if (produtoSelecionado) {
+      return (
+        <View style={styles.container}>
+          <StatusBar style="light" />
+          <ProductDetailScreen
+            produto={produtoSelecionado}
+            onVoltar={() => setProdutoSelecionado(null)}
+          />
+        </View>
+      );
+    }
 
-      {telaInterna === 'home' && (
-        <HomeScreen
-          produtos={produtos}
-          onSelectProduto={(p) => { setProdutoSelecionado(p); navegar('detalhe'); }}
-          onAbrirSidebar={() => setSidebarAberta(true)}
-          onAbrirPerfil={() => navegar('perfil')}
-        />
-      )}
+    if (verPerfil) {
+      return (
+        <View style={styles.container}>
+          <StatusBar style="light" />
+          <ProfileScreen
+            usuario={usuarioLogado}
+            perfil={perfil}
+            onSalvar={salvarPerfil}
+            onVoltar={() => setVerPerfil(false)}
+            onSair={handleSair}
+          />
+        </View>
+      );
+    }
 
-      {telaInterna === 'detalhe' && produtoSelecionado && (
-        <ProductDetailScreen
-          produto={produtoSelecionado}
-          onVoltar={voltar}
-        />
-      )}
+    // Telas com tab bar
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <View style={{ flex: 1 }}>
+          {abaUser === 'home' && (
+            <HomeScreen
+              produtos={produtos}
+              usuario={usuarioLogado}
+              perfil={perfil}
+              onSelectProduto={(p) => setProdutoSelecionado(p)}
+              onAbrirPerfil={() => setVerPerfil(true)}
+            />
+          )}
+          {abaUser === 'mapa' && (
+            <MapScreen lojas={lojas} />
+          )}
+        </View>
+        <TabBar tabs={TABS_USUARIO} active={abaUser} onChange={setAbaUser} />
+      </View>
+    );
+  }
 
-      {telaInterna === 'adicionar' && (
+  // ========================
+  // APP ADMIN
+  // ========================
+
+  // Adicionar / editar produto (tela cheia sem tab bar)
+  if (telaAdicionarProduto) {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" />
         <AddProductScreen
-          onSalvar={handleAdicionarProduto}
-          onVoltar={voltar}
+          produto={produtoParaEditar}
+          onSalvar={produtoParaEditar ? handleEditarProduto : handleAdicionarProduto}
+          onVoltar={() => { setTelaAdicionarProduto(false); setProdutoParaEditar(null); }}
         />
-      )}
+      </View>
+    );
+  }
 
-      {telaInterna === 'perfil' && (
-        <ProfileScreen
+  // Perfil do admin (sem tab bar)
+  if (verPerfilAdmin) {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <AdminPerfilScreen
           usuario={usuarioLogado}
           perfil={perfil}
           onSalvar={salvarPerfil}
-          onVoltar={voltar}
+          onVoltar={() => setVerPerfilAdmin(false)}
           onSair={handleSair}
         />
-      )}
+      </View>
+    );
+  }
 
-      {telaInterna === 'mapa' && (
-        <MapScreen onVoltar={voltar} />
-      )}
-
-      <Sidebar
-        aberta={sidebarAberta}
-        onFechar={() => setSidebarAberta(false)}
-        onNavigate={handleSidebarNavigate}
-        onSair={handleSair}
-        usuario={usuarioLogado}
-      />
+  // Telas admin com tab bar
+  return (
+    <View style={styles.container}>
+      <StatusBar style="light" />
+      <View style={{ flex: 1 }}>
+        {abaAdmin === 'painel' && (
+          <AdminDashboardScreen
+            produtos={produtos}
+            lojas={lojas}
+            admins={admins}
+            usuario={usuarioLogado}
+            onAbrirPerfil={() => setVerPerfilAdmin(true)}
+          />
+        )}
+        {abaAdmin === 'produtos' && (
+          <AdminProdutosScreen
+            produtos={produtos}
+            onNovoProduto={() => { setProdutoParaEditar(null); setTelaAdicionarProduto(true); }}
+            onEditarProduto={abrirEdicaoProduto}
+            onDeletarProduto={deletarProduto}
+          />
+        )}
+        {abaAdmin === 'lojas' && (
+          <AdminLojasScreen
+            lojas={lojas}
+            onAdicionarLoja={adicionarLoja}
+            onEditarLoja={editarLoja}
+            onDeletarLoja={deletarLoja}
+          />
+        )}
+        {abaAdmin === 'equipe' && (
+          <AdminEquipeScreen
+            admins={admins}
+            onAdicionarAdmin={adicionarAdmin}
+            onDeletarAdmin={deletarAdmin}
+            usuarioLogado={usuarioLogado}
+          />
+        )}
+      </View>
+      <TabBar tabs={TABS_ADMIN} active={abaAdmin} onChange={setAbaAdmin} />
     </View>
   );
 }

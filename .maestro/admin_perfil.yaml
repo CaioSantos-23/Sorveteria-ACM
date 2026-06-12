@@ -1,0 +1,39 @@
+appId: host.exp.exponent
+name: Admin - editar perfil
+---
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+- runFlow: _criar_admin.yaml
+
+- tapOn:
+    id: "avatar-admin"
+
+- assertVisible:
+    text: "Meu Perfil"
+- assertVisible:
+    text: "Administrador"
+
+- tapOn:
+    id: "input-nome"
+- inputText: " Atualizado"
+- hideKeyboard
+
+- scrollUntilVisible:
+    element:
+      id: "btn-salvar-perfil"
+    direction: DOWN
+    timeout: 5000
+
+- tapOn:
+    id: "btn-salvar-perfil"
+
+- assertVisible:
+    text: "Alterações salvas!"
+
+- tapOn:
+    text: "Voltar"
+- assertVisible:
+    text: "Painel"

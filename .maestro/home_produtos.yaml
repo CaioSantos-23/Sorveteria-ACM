@@ -1,0 +1,58 @@
+appId: host.exp.exponent
+name: Home - navegar e ver detalhe de produto
+---
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+- runFlow: _criar_usuario.yaml
+
+- assertVisible:
+    text: "Início"
+
+- tapOn:
+    index: 0
+    id: "produto-card"
+
+- extendedWaitUntil:
+    visible:
+      id: "btn-voltar"
+    timeout: 10000
+
+- tapOn:
+    id: "btn-voltar"
+
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible:
+      text: "Início"
+    timeout: 15000
+
+- tapOn:
+    text: "Franquias"
+
+# Permissão de localização do Expo Go (pode aparecer 2x)
+- runFlow:
+    when:
+      visible:
+        text: "ALLOW"
+    commands:
+      - tapOn:
+          text: "ALLOW"
+- runFlow:
+    when:
+      visible:
+        text: "ALLOW"
+    commands:
+      - tapOn:
+          text: "ALLOW"
+
+- extendedWaitUntil:
+    visible:
+      text: "Franquias no Mapa"
+    timeout: 15000
+
+- assertVisible:
+    text: "Franquias no Mapa"

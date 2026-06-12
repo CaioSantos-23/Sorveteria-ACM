@@ -1,27 +1,40 @@
 import { useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ref, get, set } from 'firebase/database';
+import { db } from '../services/firebaseConfig';
 
-const CHAVE_PERFIL = '@gelato_mec:perfil';
+// Firebase não aceita '.', '#', '$', '[', ']' nas chaves → sanitiza o email
+function sanitizarEmail(email) {
+  if (!email) return 'anonimo';
+  return email.replace(/[.#$[\]@]/g, '_');
+}
 
-export function useProfile() {
+export function useProfile(userEmail) {
   const [perfil, setPerfil] = useState({});
+  const userId = sanitizarEmail(userEmail);
 
   useEffect(() => {
+    if (!userEmail) return;
     carregar();
-  }, []);
+  }, [userEmail]);
 
   const carregar = async () => {
     try {
-      const json = await AsyncStorage.getItem(CHAVE_PERFIL);
-      if (json) setPerfil(JSON.parse(json));
+      const snapshot = await get(ref(db, `perfis/${userId}`));
+      if (snapshot.exists()) {
+        setPerfil(snapshot.val());
+      }
     } catch (e) {
       console.warn('Erro ao carregar perfil:', e);
     }
   };
 
   const salvarPerfil = async (dados) => {
-    setPerfil(dados);
-    await AsyncStorage.setItem(CHAVE_PERFIL, JSON.stringify(dados));
+    try {
+      setPerfil(dados);
+      await set(ref(db, `perfis/${userId}`), dados);
+    } catch (e) {
+      console.warn('Erro ao salvar perfil:', e);
+    }
   };
 
   return { perfil, salvarPerfil };

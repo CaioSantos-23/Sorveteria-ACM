@@ -2,18 +2,20 @@ import React, { useState } from 'react';
 import {
   View, Text, Image, TextInput, TouchableOpacity,
   StyleSheet, ScrollView, KeyboardAvoidingView,
-  Platform, Alert, SafeAreaView,
+  Platform, Alert, SafeAreaView, StatusBar,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
-export default function AddProductScreen({ onSalvar, onVoltar }) {
-  const [nome, setNome] = useState('');
-  const [preco, setPreco] = useState('');
-  const [quantidade, setQuantidade] = useState('');
-  const [ingredientes, setIngredientes] = useState('');
-  const [calorias, setCalorias] = useState('');
-  const [descricao, setDescricao] = useState('');
-  const [fotoUri, setFotoUri] = useState(null);
+export default function AddProductScreen({ onSalvar, onVoltar, produto }) {
+  const editando = !!produto;
+
+  const [nome, setNome] = useState(produto?.name || '');
+  const [preco, setPreco] = useState(produto?.price != null ? String(produto.price) : '');
+  const [quantidade, setQuantidade] = useState(produto?.qty != null ? String(produto.qty) : '');
+  const [ingredientes, setIngredientes] = useState(produto?.ingredientes || '');
+  const [calorias, setCalorias] = useState(produto?.calorias || '');
+  const [descricao, setDescricao] = useState(produto?.descricao || '');
+  const [fotoUri, setFotoUri] = useState(produto?.fotoUri || null);
 
   const escolherFoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -63,7 +65,7 @@ export default function AddProductScreen({ onSalvar, onVoltar }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -73,131 +75,137 @@ export default function AddProductScreen({ onSalvar, onVoltar }) {
           <TouchableOpacity onPress={onVoltar} style={styles.voltarBtn}>
             <Text style={styles.voltarText}>← Voltar</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitulo}>Novo Produto</Text>
+          <Text style={styles.headerTitulo}>{editando ? 'Editar Produto' : 'Novo Produto'}</Text>
           <View style={{ width: 70 }} />
         </View>
 
-        <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
+        <View style={styles.content}>
+          <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-          {/* Foto do produto */}
-          <View style={styles.secao}>
-            <Text style={styles.secaoTitulo}>Foto do produto</Text>
-            <TouchableOpacity style={styles.fotoArea} onPress={escolherFoto} activeOpacity={0.8}>
-              {fotoUri ? (
-                <Image source={{ uri: fotoUri }} style={styles.fotoPreview} resizeMode="cover" />
-              ) : (
-                <View style={styles.fotoPlaceholder}>
-                  <Text style={styles.fotoPlaceholderEmoji}>📷</Text>
-                  <Text style={styles.fotoPlaceholderText}>Toque para adicionar foto</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-            <View style={styles.fotoBotoes}>
-              <TouchableOpacity style={styles.fotoBotao} onPress={escolherFoto}>
-                <Text style={styles.fotoBotaoText}>🖼️ Galeria</Text>
+            {/* Foto do produto */}
+            <View style={styles.secao}>
+              <Text style={styles.secaoTitulo}>Foto do produto</Text>
+              <TouchableOpacity style={styles.fotoArea} onPress={escolherFoto} activeOpacity={0.8}>
+                {fotoUri ? (
+                  <Image source={{ uri: fotoUri }} style={styles.fotoPreview} resizeMode="cover" />
+                ) : (
+                  <View style={styles.fotoPlaceholder}>
+                    <Text style={styles.fotoPlaceholderEmoji}>📷</Text>
+                    <Text style={styles.fotoPlaceholderText}>Toque para adicionar foto</Text>
+                  </View>
+                )}
               </TouchableOpacity>
-              <TouchableOpacity style={styles.fotoBotao} onPress={tirarFoto}>
-                <Text style={styles.fotoBotaoText}>📷 Câmera</Text>
-              </TouchableOpacity>
-              {fotoUri && (
-                <TouchableOpacity style={[styles.fotoBotao, styles.fotoBotaoRemover]} onPress={() => setFotoUri(null)}>
-                  <Text style={styles.fotoBotaoText}>🗑️ Remover</Text>
+              <View style={styles.fotoBotoes}>
+                <TouchableOpacity style={styles.fotoBotao} onPress={escolherFoto}>
+                  <Text style={styles.fotoBotaoText}>🖼️ Galeria</Text>
                 </TouchableOpacity>
-              )}
-            </View>
-          </View>
-
-          <View style={styles.secao}>
-            <Text style={styles.secaoTitulo}>Informações básicas</Text>
-
-            <Text style={styles.label}>Nome do Sabor *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ex: Morango com Chantilly"
-              placeholderTextColor="#aaa"
-              value={nome}
-              onChangeText={setNome}
-              autoCapitalize="words"
-            />
-
-            <View style={styles.row}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Preço (R$) *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="0,00"
-                  placeholderTextColor="#aaa"
-                  keyboardType="decimal-pad"
-                  value={preco}
-                  onChangeText={setPreco}
-                />
-              </View>
-              <View style={{ width: 12 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Quantidade *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="0"
-                  placeholderTextColor="#aaa"
-                  keyboardType="number-pad"
-                  value={quantidade}
-                  onChangeText={setQuantidade}
-                />
+                <TouchableOpacity style={styles.fotoBotao} onPress={tirarFoto}>
+                  <Text style={styles.fotoBotaoText}>📷 Câmera</Text>
+                </TouchableOpacity>
+                {fotoUri && (
+                  <TouchableOpacity style={[styles.fotoBotao, styles.fotoBotaoRemover]} onPress={() => setFotoUri(null)}>
+                    <Text style={styles.fotoBotaoText}>🗑️ Remover</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
 
-            <Text style={styles.label}>Calorias (kcal)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ex: 280"
-              placeholderTextColor="#aaa"
-              keyboardType="number-pad"
-              value={calorias}
-              onChangeText={setCalorias}
-            />
-          </View>
+            <View style={styles.secao}>
+              <Text style={styles.secaoTitulo}>Informações básicas</Text>
 
-          <View style={styles.secao}>
-            <Text style={styles.secaoTitulo}>Detalhes</Text>
+              <Text style={styles.label}>Nome do Sabor *</Text>
+              <TextInput
+                testID="input-nome-produto"
+                style={styles.input}
+                placeholder="Ex: Morango com Chantilly"
+                placeholderTextColor="#aaa"
+                value={nome}
+                onChangeText={setNome}
+                autoCapitalize="words"
+              />
 
-            <Text style={styles.label}>Ingredientes (separados por vírgula)</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Ex: Leite, Açúcar, Morango, Creme de leite"
-              placeholderTextColor="#aaa"
-              multiline
-              numberOfLines={3}
-              value={ingredientes}
-              onChangeText={setIngredientes}
-            />
+              <View style={styles.row}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>Preço (R$) *</Text>
+                  <TextInput
+                    testID="input-preco-produto"
+                    style={styles.input}
+                    placeholder="0,00"
+                    placeholderTextColor="#aaa"
+                    keyboardType="decimal-pad"
+                    value={preco}
+                    onChangeText={setPreco}
+                  />
+                </View>
+                <View style={{ width: 12 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>Quantidade *</Text>
+                  <TextInput
+                    testID="input-qtd-produto"
+                    style={styles.input}
+                    placeholder="0"
+                    placeholderTextColor="#aaa"
+                    keyboardType="number-pad"
+                    value={quantidade}
+                    onChangeText={setQuantidade}
+                  />
+                </View>
+              </View>
 
-            <Text style={styles.label}>Descrição do Sabor</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Fale sobre este sabor especial..."
-              placeholderTextColor="#aaa"
-              multiline
-              numberOfLines={3}
-              value={descricao}
-              onChangeText={setDescricao}
-            />
-          </View>
+              <Text style={styles.label}>Calorias (kcal)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Ex: 280"
+                placeholderTextColor="#aaa"
+                keyboardType="number-pad"
+                value={calorias}
+                onChangeText={setCalorias}
+              />
+            </View>
 
-          <TouchableOpacity style={styles.botao} onPress={handleSalvar}>
-            <Text style={styles.botaoText}>Salvar Produto</Text>
-          </TouchableOpacity>
+            <View style={styles.secao}>
+              <Text style={styles.secaoTitulo}>Detalhes</Text>
 
-          <View style={{ height: 40 }} />
-        </ScrollView>
+              <Text style={styles.label}>Ingredientes (separados por vírgula)</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Ex: Leite, Açúcar, Morango, Creme de leite"
+                placeholderTextColor="#aaa"
+                multiline
+                numberOfLines={3}
+                value={ingredientes}
+                onChangeText={setIngredientes}
+              />
+
+              <Text style={styles.label}>Descrição do Sabor</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Fale sobre este sabor especial..."
+                placeholderTextColor="#aaa"
+                multiline
+                numberOfLines={3}
+                value={descricao}
+                onChangeText={setDescricao}
+              />
+            </View>
+
+            <TouchableOpacity testID="btn-salvar-produto" style={styles.botao} onPress={handleSalvar}>
+              <Text style={styles.botaoText}>{editando ? 'Salvar Alterações' : 'Salvar Produto'}</Text>
+            </TouchableOpacity>
+
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: '#F4F0FF',
+    backgroundColor: '#3D1A78',
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0,
   },
   header: {
     flexDirection: 'row',
@@ -210,6 +218,7 @@ const styles = StyleSheet.create({
   voltarBtn: {
     paddingVertical: 6,
     paddingHorizontal: 4,
+    minWidth: 70,
   },
   voltarText: {
     color: '#fff',
@@ -220,6 +229,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 17,
     fontWeight: '800',
+  },
+  content: {
+    flex: 1,
+    backgroundColor: '#F4F0FF',
   },
   form: {
     padding: 16,
