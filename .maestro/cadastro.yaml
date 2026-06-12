@@ -1,0 +1,68 @@
+appId: host.exp.exponent
+name: Cadastro de nova conta
+---
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+- openLink: exp://127.0.0.1:8081
+
+- extendedWaitUntil:
+    visible:
+      id: "btn-criar-conta"
+    timeout: 30000
+
+- waitForAnimationToEnd
+
+- runScript:
+    file: delay_5s.js
+
+- tapOn:
+    id: "btn-criar-conta"
+
+- extendedWaitUntil:
+    visible:
+      id: "titulo-cadastro"
+    timeout: 30000
+
+- tapOn:
+    id: "input-nome"
+- inputText: "Teste Maestro"
+
+- tapOn:
+    id: "input-email"
+- inputText: "maestro_novo@email.com"
+
+- tapOn:
+    id: "input-senha"
+- inputText: "maestro123"
+
+- hideKeyboard
+
+- tapOn:
+    id: "input-confirmar"
+- inputText: "maestro123"
+
+- tapOn:
+    text: "Criar conta"
+
+- assertVisible:
+    text: "Conta criada!"
+- runFlow:
+    when:
+      visible:
+        text: "Agora não"
+    commands:
+      - tapOn:
+          text: "Agora não"
+- runFlow:
+    when:
+      visible:
+        text: "OK"
+    commands:
+      - tapOn:
+          text: "OK"
+
+- assertVisible:
+    text: "Entrar"

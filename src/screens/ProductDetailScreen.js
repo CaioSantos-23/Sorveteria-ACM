@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Dimensions,
+  View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Dimensions, Platform, StatusBar,
 } from 'react-native';
 import { getImagemProduto } from '../utils/images';
 
@@ -18,7 +18,7 @@ function corDoItem(id) {
   };
 }
 
-export default function ProductDetailScreen({ produto, onVoltar }) {
+export default function ProductDetailScreen({ produto, onVoltar, onEditar }) {
   const { cor, emoji } = corDoItem(produto.id);
   const imagemAsset = getImagemProduto(produto.name);
   const imagem = produto.fotoUri ? { uri: produto.fotoUri } : imagemAsset;
@@ -29,7 +29,12 @@ export default function ProductDetailScreen({ produto, onVoltar }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      {/* Botão Voltar fixo fora do ScrollView para garantir toque */}
+      <TouchableOpacity testID="btn-voltar" style={styles.voltarBtn} onPress={onVoltar}>
+        <Text style={styles.voltarText}>← Voltar</Text>
+      </TouchableOpacity>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
         {/* Hero */}
         <View style={[styles.hero, { backgroundColor: cor }]}>
@@ -38,14 +43,18 @@ export default function ProductDetailScreen({ produto, onVoltar }) {
           ) : (
             <Text style={styles.heroEmoji}>{produto.emoji || emoji}</Text>
           )}
-          <TouchableOpacity style={styles.voltarBtn} onPress={onVoltar}>
-            <Text style={styles.voltarText}>← Voltar</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Conteúdo */}
         <View style={styles.content}>
-          <Text style={styles.nome}>{produto.name}</Text>
+          <View style={styles.cabecalho}>
+            <Text style={styles.nome}>{produto.name}</Text>
+            {onEditar && (
+              <TouchableOpacity style={styles.editarBtn} onPress={() => onEditar(produto)}>
+                <Text style={styles.editarBtnText}>✏️ Editar</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           {/* Chips de info */}
           <View style={styles.chips}>
@@ -78,14 +87,13 @@ export default function ProductDetailScreen({ produto, onVoltar }) {
             </View>
           )}
 
-          {/* Sabor / descrição */}
+          {/* Descrição */}
           {produto.descricao ? (
             <View style={styles.secao}>
               <Text style={styles.secaoTitulo}>🍬 Sobre o Sabor</Text>
               <Text style={styles.descricaoTexto}>{produto.descricao}</Text>
             </View>
           ) : null}
-
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -97,9 +105,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F4F0FF',
   },
+  scrollContent: {
+    paddingBottom: 32,
+  },
   hero: {
     width: '100%',
-    height: width * (872 / 1600), // proporcao exata 16:9 da imagem
+    height: width * (9 / 16),
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -111,8 +122,9 @@ const styles = StyleSheet.create({
   },
   voltarBtn: {
     position: 'absolute',
-    top: 16,
+    top: (Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0) + 16,
     left: 16,
+    zIndex: 10,
     backgroundColor: 'rgba(0,0,0,0.35)',
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -134,11 +146,31 @@ const styles = StyleSheet.create({
     padding: 24,
     minHeight: 400,
   },
+  cabecalho: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    gap: 12,
+  },
   nome: {
+    flex: 1,
     fontSize: 26,
     fontWeight: '800',
     color: '#1a1a2e',
-    marginBottom: 16,
+  },
+  editarBtn: {
+    backgroundColor: '#F0EBFF',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#D8B4FE',
+  },
+  editarBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#3D1A78',
   },
   chips: {
     flexDirection: 'row',

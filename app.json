@@ -4,10 +4,10 @@
     "slug": "gelato-mec",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo_gelato_mec.jpeg",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/logo_gelato_mec.jpeg",
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#3D1A78"
     },

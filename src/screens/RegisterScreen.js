@@ -38,10 +38,11 @@ export default function RegisterScreen({ onRegister, onGoLogin, onAtivarBiometri
 
         {/* Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Cadastro</Text>
+          <Text testID="titulo-cadastro" style={styles.cardTitle}>Cadastro</Text>
 
           <Text style={styles.label}>Nome completo</Text>
           <TextInput
+            testID="input-nome"
             style={styles.input}
             placeholder="Seu nome"
             placeholderTextColor="#aaa"
@@ -52,6 +53,7 @@ export default function RegisterScreen({ onRegister, onGoLogin, onAtivarBiometri
 
           <Text style={styles.label}>E-mail</Text>
           <TextInput
+            testID="input-email"
             style={styles.input}
             placeholder="seu@email.com"
             placeholderTextColor="#aaa"
@@ -64,6 +66,7 @@ export default function RegisterScreen({ onRegister, onGoLogin, onAtivarBiometri
           <Text style={styles.label}>Senha</Text>
           <View style={styles.senhaContainer}>
             <TextInput
+              testID="input-senha"
               style={[styles.input, styles.senhaInput]}
               placeholder="Mínimo 6 caracteres"
               placeholderTextColor="#aaa"
@@ -81,6 +84,7 @@ export default function RegisterScreen({ onRegister, onGoLogin, onAtivarBiometri
 
           <Text style={styles.label}>Confirmar senha</Text>
           <TextInput
+            testID="input-confirmar"
             style={[styles.input, confirmar && senha !== confirmar && styles.inputErro]}
             placeholder="Repita a senha"
             placeholderTextColor="#aaa"

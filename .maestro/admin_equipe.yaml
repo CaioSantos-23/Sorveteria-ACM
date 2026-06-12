@@ -1,0 +1,60 @@
+appId: host.exp.exponent
+name: Admin - gerenciar equipe
+---
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+- runFlow: _criar_admin.yaml
+
+- tapOn:
+    text: "Equipe"
+
+- extendedWaitUntil:
+    visible:
+      id: "contador-equipe"
+    timeout: 15000
+
+- tapOn:
+    id: "add-equipe-btn"
+
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "input-nome-equipe"
+- inputText: "Admin Maestro"
+
+- hideKeyboard
+
+- tapOn:
+    id: "input-email-equipe"
+- inputText: "maestro.admin@gelatomec.com"
+
+- hideKeyboard
+
+- tapOn:
+    id: "input-senha-equipe"
+- inputText: "maestro123"
+
+- hideKeyboard
+
+- tapOn:
+    id: "input-confirmar-equipe"
+- inputText: "maestro123"
+
+- hideKeyboard
+
+- tapOn:
+    text: "Estoque"
+
+- tapOn:
+    id: "btn-cadastrar-admin"
+
+- extendedWaitUntil:
+    visible:
+      text: "Admin Maestro"
+    timeout: 10000
+
+- assertVisible:
+    text: "Admin Maestro"

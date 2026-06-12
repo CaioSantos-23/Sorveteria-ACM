@@ -1,0 +1,44 @@
+appId: host.exp.exponent
+name: Mapa - buscar franquias
+---
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+- runFlow: _criar_usuario.yaml
+
+- tapOn:
+    text: "Franquias"
+
+# Permissão de localização do Expo Go (pode aparecer 2x)
+- runFlow:
+    when:
+      visible:
+        text: "ALLOW"
+    commands:
+      - tapOn:
+          text: "ALLOW"
+- runFlow:
+    when:
+      visible:
+        text: "ALLOW"
+    commands:
+      - tapOn:
+          text: "ALLOW"
+
+- extendedWaitUntil:
+    visible:
+      text: "Franquias no Mapa"
+    timeout: 15000
+
+- tapOn:
+    id: "input-busca-mapa"
+- inputText: "Gelato"
+- hideKeyboard
+
+- tapOn:
+    id: "btn-perto-mim"
+
+- assertVisible:
+    text: "Franquias no Mapa"

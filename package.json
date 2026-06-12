@@ -6,18 +6,37 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "maestro": "maestro.bat test .maestro/",
+    "maestro:login": "maestro.bat test .maestro/login_usuario.yaml",
+    "maestro:admin": "maestro.bat test .maestro/login_admin.yaml",
+    "maestro:cadastro": "maestro.bat test .maestro/cadastro.yaml",
+    "maestro:home": "maestro.bat test .maestro/home_produtos.yaml",
+    "maestro:mapa": "maestro.bat test .maestro/mapa.yaml",
+    "maestro:produtos": "maestro.bat test .maestro/admin_produtos.yaml",
+    "maestro:lojas": "maestro.bat test .maestro/admin_lojas.yaml",
+    "maestro:equipe": "maestro.bat test .maestro/admin_equipe.yaml",
+    "maestro:perfil": "maestro.bat test .maestro/admin_perfil.yaml"
   },
   "dependencies": {
-    "@react-native-async-storage/async-storage": "~2.1.2",
-    "expo": "~54.0.0",
-    "expo-image-picker": "~16.0.6",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "expo": "~54.0.35",
+    "expo-image-picker": "~17.0.11",
     "expo-local-authentication": "~17.0.8",
-    "expo-location": "~18.0.4",
+    "expo-location": "~19.0.8",
     "expo-status-bar": "~3.0.9",
+    "firebase": "^12.14.0",
     "react": "19.1.0",
     "react-native": "0.81.5",
-    "react-native-maps": "~1.18.0"
+    "react-native-maps": "1.20.1"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@testing-library/react-native": "^13.3.3",
+    "jest-expo": "~54.0.0",
+    "react-test-renderer": "^19.1.0"
+  }
 }

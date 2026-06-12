@@ -1,46 +1,56 @@
 import { useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ref, push, update, remove, onValue } from 'firebase/database';
+import { db } from '../services/firebaseConfig';
 import { DEMO_PRODUTOS } from '../utils/images';
 
-const CHAVE_PRODUTOS = '@gelato_mec:produtos';
+const CAMINHO = 'produtos';
 
-const gerarId = () => Math.random().toString(36).substring(2) + Date.now().toString(36);
-
-export function useProducts() {
+export function useProducts(enabled = true) {
   const [produtos, setProdutos] = useState([]);
+  const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    carregar();
-  }, []);
+    if (!enabled) return;
+    const produtosRef = ref(db, CAMINHO);
 
-  const carregar = async () => {
-    try {
-      const json = await AsyncStorage.getItem(CHAVE_PRODUTOS);
-      if (json) {
-        setProdutos(JSON.parse(json));
+    const cancelar = onValue(produtosRef, async (snapshot) => {
+      if (snapshot.exists()) {
+        const dados = snapshot.val();
+        const lista = Object.keys(dados).map((key) => ({ id: key, ...dados[key] }));
+        setProdutos(lista);
       } else {
-        setProdutos(DEMO_PRODUTOS);
-        await AsyncStorage.setItem(CHAVE_PRODUTOS, JSON.stringify(DEMO_PRODUTOS));
+        await semearDemos();
       }
-    } catch (e) {
-      console.warn('Erro ao carregar produtos:', e);
-      setProdutos(DEMO_PRODUTOS);
+      setCarregando(false);
+    });
+
+    return () => cancelar();
+  }, [enabled]);
+
+  // Insere os produtos de demonstração no Firebase quando o banco está vazio
+  const semearDemos = async () => {
+    const produtosRef = ref(db, CAMINHO);
+    for (const p of DEMO_PRODUTOS) {
+      const { id, ...dados } = p; // Firebase gera o id automaticamente com push()
+      await push(produtosRef, dados);
     }
   };
 
   const adicionarProduto = async (produto) => {
-    const novo = { id: gerarId(), ...produto };
-    const novos = [...produtos, novo];
-    setProdutos(novos);
-    await AsyncStorage.setItem(CHAVE_PRODUTOS, JSON.stringify(novos));
-    return novo;
+    const produtosRef = ref(db, CAMINHO);
+    const novoRef = await push(produtosRef, produto);
+    return { id: novoRef.key, ...produto };
+  };
+
+  const editarProduto = async (id, dados) => {
+    const produtoRef = ref(db, `${CAMINHO}/${id}`);
+    await update(produtoRef, dados);
   };
 
   const deletarProduto = async (id) => {
-    const novos = produtos.filter(p => p.id !== id);
-    setProdutos(novos);
-    await AsyncStorage.setItem(CHAVE_PRODUTOS, JSON.stringify(novos));
+    const produtoRef = ref(db, `${CAMINHO}/${id}`);
+    await remove(produtoRef);
   };
 
-  return { produtos, adicionarProduto, deletarProduto };
+  return { produtos, carregando, adicionarProduto, editarProduto, deletarProduto };
 }

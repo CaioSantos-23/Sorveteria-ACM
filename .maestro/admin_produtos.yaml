@@ -1,0 +1,57 @@
+appId: host.exp.exponent
+name: Admin - gerenciar produtos
+---
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+- runFlow: _criar_admin.yaml
+
+- tapOn:
+    text: "Produtos"
+
+- extendedWaitUntil:
+    visible:
+      id: "contador-produtos"
+    timeout: 15000
+
+- tapOn:
+    id: "add-produto-btn"
+
+- tapOn:
+    id: "input-nome-produto"
+- inputText: "Sorvete Maestro"
+
+- hideKeyboard
+
+- tapOn:
+    id: "input-preco-produto"
+- inputText: "12.90"
+
+- hideKeyboard
+
+- tapOn:
+    id: "input-qtd-produto"
+- inputText: "50"
+
+- hideKeyboard
+
+- scrollUntilVisible:
+    element:
+      id: "btn-salvar-produto"
+    direction: DOWN
+    timeout: 5000
+
+- tapOn:
+    id: "btn-salvar-produto"
+
+- assertVisible:
+    text: "Produto salvo!"
+- tapOn:
+    text: "OK"
+
+- extendedWaitUntil:
+    visible:
+      id: "contador-produtos"
+    timeout: 10000

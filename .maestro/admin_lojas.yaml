@@ -1,0 +1,51 @@
+appId: host.exp.exponent
+name: Admin - gerenciar lojas
+---
+- launchApp:
+    clearState: true
+
+- waitForAnimationToEnd
+
+- runFlow: _criar_admin.yaml
+
+- tapOn:
+    text: "Lojas"
+
+- extendedWaitUntil:
+    visible:
+      id: "contador-lojas"
+    timeout: 15000
+
+- tapOn:
+    id: "add-loja-btn"
+
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "input-nome-loja"
+- inputText: "Loja Maestro Centro"
+
+- hideKeyboard
+
+- tapOn:
+    id: "input-endereco-loja"
+- inputText: "Av. Principal, 100"
+
+- hideKeyboard
+
+- tapOn:
+    id: "input-cidade-loja"
+- inputText: "Sao Paulo"
+
+- hideKeyboard
+
+- tapOn:
+    id: "btn-cadastrar-loja"
+
+- extendedWaitUntil:
+    visible:
+      text: "Loja Maestro Centro"
+    timeout: 10000
+
+- assertVisible:
+    text: "Loja Maestro Centro"
