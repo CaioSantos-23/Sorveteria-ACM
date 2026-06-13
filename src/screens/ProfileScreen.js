@@ -4,7 +4,9 @@ import {
   StyleSheet, ScrollView, KeyboardAvoidingView,
   Platform, Alert, SafeAreaView, StatusBar,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 
 function formatarTelefone(value) {
   const nums = value.replace(/\D/g, '').slice(0, 11);
@@ -20,7 +22,7 @@ function formatarData(value) {
   return `${nums.slice(0, 2)}/${nums.slice(2, 4)}/${nums.slice(4)}`;
 }
 
-export default function ProfileScreen({ usuario, perfil, onSalvar, onVoltar, onSair }) {
+export default function ProfileScreen({ usuario, perfil, onSalvar, onVoltar, onSair, onTrocarSenha }) {
   const [nome, setNome] = useState(perfil?.nome || usuario?.nome || '');
   const [nomeSocial, setNomeSocial] = useState(perfil?.nomeSocial || '');
   const [bio, setBio] = useState(perfil?.bio || '');
@@ -29,6 +31,38 @@ export default function ProfileScreen({ usuario, perfil, onSalvar, onVoltar, onS
   const [cidade, setCidade] = useState(perfil?.cidade || '');
   const [nascimento, setNascimento] = useState(perfil?.nascimento || '');
   const [fotoUri, setFotoUri] = useState(perfil?.fotoUri || null);
+
+  // Troca de senha
+  const [senhaAtual, setSenhaAtual] = useState('');
+  const [novaSenha, setNovaSenha] = useState('');
+  const [confSenha, setConfSenha] = useState('');
+  const [verSenha, setVerSenha] = useState(false);
+
+  const senhaCurta = novaSenha.length > 0 && novaSenha.length < 6;
+  const naoBatem = confSenha.length > 0 && confSenha !== novaSenha;
+  const podeTrocar = senhaAtual.length > 0 && novaSenha.length >= 6 && confSenha === novaSenha;
+
+  const abrirCalendario = () => {
+    const partes = nascimento.split('/');
+    const dataAtual = partes.length === 3
+      ? new Date(Number(partes[2]), Number(partes[1]) - 1, Number(partes[0]))
+      : new Date(2000, 0, 1);
+
+    DateTimePickerAndroid.open({
+      value: dataAtual,
+      mode: 'date',
+      maximumDate: new Date(),
+      display: 'calendar',
+      onChange: (event, date) => {
+        if (event.type === 'set' && date) {
+          const dia = String(date.getDate()).padStart(2, '0');
+          const mes = String(date.getMonth() + 1).padStart(2, '0');
+          const ano = date.getFullYear();
+          setNascimento(`${dia}/${mes}/${ano}`);
+        }
+      },
+    });
+  };
 
   const escolherFoto = async () => {
     Alert.alert('Foto de perfil', 'Como deseja adicionar sua foto?', [
@@ -65,6 +99,21 @@ export default function ProfileScreen({ usuario, perfil, onSalvar, onVoltar, onS
     Alert.alert('Perfil salvo!', 'Suas informações foram atualizadas com sucesso.');
   };
 
+  const handleTrocarSenha = () => {
+    if (!podeTrocar) return;
+    if (onTrocarSenha) {
+      const ok = onTrocarSenha(senhaAtual, novaSenha);
+      if (ok === false) {
+        Alert.alert('Senha incorreta', 'A senha atual informada não confere.');
+        return;
+      }
+    }
+    Alert.alert('Senha alterada!', 'Sua senha foi atualizada com sucesso.');
+    setSenhaAtual('');
+    setNovaSenha('');
+    setConfSenha('');
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -84,7 +133,7 @@ export default function ProfileScreen({ usuario, perfil, onSalvar, onVoltar, onS
         <View style={styles.content}>
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-            {/* Avatar / Ícone de exibição */}
+            {/* Avatar */}
             <View style={styles.avatarArea}>
               <TouchableOpacity onPress={escolherFoto} style={styles.avatarWrapper} activeOpacity={0.8}>
                 {fotoUri ? (
@@ -142,15 +191,12 @@ export default function ProfileScreen({ usuario, perfil, onSalvar, onVoltar, onS
               />
 
               <Text style={styles.label}>Data de nascimento</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="DD/MM/AAAA"
-                placeholderTextColor="#aaa"
-                keyboardType="number-pad"
-                value={nascimento}
-                onChangeText={(t) => setNascimento(formatarData(t))}
-                maxLength={10}
-              />
+              <TouchableOpacity style={styles.inputIconRow} onPress={abrirCalendario} activeOpacity={0.7}>
+                <Ionicons name="calendar-outline" size={18} color="#FF4D8D" style={styles.inputIcon} />
+                <Text style={[styles.inputComIcone, styles.inputDataTexto, !nascimento && { color: '#aaa' }]}>
+                  {nascimento || 'DD/MM/AAAA'}
+                </Text>
+              </TouchableOpacity>
             </View>
 
             {/* Contato */}
@@ -189,6 +235,56 @@ export default function ProfileScreen({ usuario, perfil, onSalvar, onVoltar, onS
               />
             </View>
 
+            {/* Troca de senha */}
+            <View style={styles.secao}>
+              <Text style={styles.secaoTitulo}>Trocar senha</Text>
+
+              <Text style={styles.label}>Senha atual</Text>
+              <View style={styles.senhaRow}>
+                <TextInput
+                  style={[styles.input, { flex: 1, paddingRight: 48 }]}
+                  placeholder="••••••"
+                  placeholderTextColor="#aaa"
+                  secureTextEntry={!verSenha}
+                  value={senhaAtual}
+                  onChangeText={setSenhaAtual}
+                />
+                <TouchableOpacity style={styles.olhoBtn} onPress={() => setVerSenha(!verSenha)}>
+                  <Ionicons name={verSenha ? 'eye-off-outline' : 'eye-outline'} size={20} color="#9090A0" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.label}>Nova senha</Text>
+              <TextInput
+                style={[styles.input, senhaCurta && styles.inputErro]}
+                placeholder="Mínimo 6 caracteres"
+                placeholderTextColor="#aaa"
+                secureTextEntry={!verSenha}
+                value={novaSenha}
+                onChangeText={setNovaSenha}
+              />
+              {senhaCurta && <Text style={styles.erroText}>A senha deve ter ao menos 6 caracteres</Text>}
+
+              <Text style={styles.label}>Confirmar nova senha</Text>
+              <TextInput
+                style={[styles.input, naoBatem && styles.inputErro]}
+                placeholder="Repita a nova senha"
+                placeholderTextColor="#aaa"
+                secureTextEntry={!verSenha}
+                value={confSenha}
+                onChangeText={setConfSenha}
+              />
+              {naoBatem && <Text style={styles.erroText}>As senhas não coincidem</Text>}
+
+              <TouchableOpacity
+                style={[styles.botaoTrocar, !podeTrocar && { opacity: 0.4 }]}
+                onPress={handleTrocarSenha}
+                disabled={!podeTrocar}
+              >
+                <Text style={styles.botaoTrocarText}>Trocar senha</Text>
+              </TouchableOpacity>
+            </View>
+
             {/* Conta (só leitura) */}
             <View style={styles.secao}>
               <Text style={styles.secaoTitulo}>Conta</Text>
@@ -218,6 +314,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#3D1A78',
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0,
   },
   header: {
     flexDirection: 'row',
@@ -264,20 +361,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#3D1A78',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#3D1A78',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
     elevation: 6,
   },
   avatarFoto: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
     elevation: 6,
   },
   avatarCameraBtn: {
@@ -313,10 +402,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#3D1A78',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
     elevation: 2,
   },
   secaoTitulo: {
@@ -343,6 +428,58 @@ const styles = StyleSheet.create({
     color: '#1a1a2e',
     borderWidth: 1,
     borderColor: '#E8E8E8',
+  },
+  inputErro: {
+    borderColor: '#E5484D',
+  },
+  inputIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    paddingHorizontal: 12,
+  },
+  inputIcon: {
+    marginRight: 8,
+  },
+  inputComIcone: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    paddingHorizontal: 0,
+  },
+  inputDataTexto: {
+    fontSize: 15,
+    color: '#1a1a2e',
+    paddingVertical: 12,
+  },
+  senhaRow: {
+    position: 'relative',
+  },
+  olhoBtn: {
+    position: 'absolute',
+    right: 12,
+    top: 13,
+  },
+  erroText: {
+    color: '#E5484D',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  botaoTrocar: {
+    backgroundColor: '#F4F0FF',
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: 'center',
+    marginTop: 14,
+  },
+  botaoTrocarText: {
+    color: '#3D1A78',
+    fontSize: 15,
+    fontWeight: '800',
   },
   textArea: {
     minHeight: 80,
@@ -372,10 +509,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginBottom: 12,
-    shadowColor: '#FF4D8D',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
     elevation: 6,
   },
   botaoText: {

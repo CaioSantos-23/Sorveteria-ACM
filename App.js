@@ -1,11 +1,13 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Auth
 import SplashScreen from './src/screens/SplashScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
+import RecuperarSenhaScreen from './src/screens/RecuperarSenhaScreen';
 
 // Usuário
 import HomeScreen from './src/screens/HomeScreen';
@@ -66,7 +68,7 @@ export default function App() {
   const logado = !!usuarioLogado;
   const { produtos, adicionarProduto, editarProduto, deletarProduto } = useProducts(logado);
   const { lojas, adicionarLoja, editarLoja, deletarLoja } = useLojas(logado);
-  const { admins, adicionarAdmin, deletarAdmin } = useAdmins(logado);
+  const { admins, adicionarAdmin, deletarAdmin, alterarSenhaAdmin } = useAdmins(logado);
   const { perfil, salvarPerfil } = useProfile(usuarioLogado?.email);
 
   // Auth state
@@ -122,6 +124,57 @@ export default function App() {
 
   const handleBiometria = async () => {
     await autenticarBiometria();
+  };
+
+  const handleVerificarEmail = async (emailDigitado) => {
+    const usuariosJson = await AsyncStorage.getItem('@gelato_mec:usuarios');
+    const lista = usuariosJson ? JSON.parse(usuariosJson) : [];
+    if (lista.some(u => u.email === emailDigitado)) return true;
+    try {
+      const { get, ref } = await import('firebase/database');
+      const { db } = await import('./src/services/firebaseConfig');
+      const snapshot = await get(ref(db, 'admins'));
+      if (snapshot.exists()) {
+        const dados = snapshot.val();
+        return Object.values(dados).some(a => a.email === emailDigitado);
+      }
+    } catch (e) {}
+    return false;
+  };
+
+  const handleRedefinirSenha = async (emailDigitado, novaSenha) => {
+    // Atualiza em AsyncStorage (usuários comuns)
+    const usuariosJson = await AsyncStorage.getItem('@gelato_mec:usuarios');
+    const lista = usuariosJson ? JSON.parse(usuariosJson) : [];
+    const idx = lista.findIndex(u => u.email === emailDigitado);
+    if (idx !== -1) {
+      lista[idx].senha = novaSenha;
+      await AsyncStorage.setItem('@gelato_mec:usuarios', JSON.stringify(lista));
+      return;
+    }
+    // Atualiza no Firebase (admins/equipe)
+    try {
+      const { get, ref, update } = await import('firebase/database');
+      const { db } = await import('./src/services/firebaseConfig');
+      const snapshot = await get(ref(db, 'admins'));
+      if (snapshot.exists()) {
+        const dados = snapshot.val();
+        const entrada = Object.entries(dados).find(([, v]) => v.email === emailDigitado);
+        if (entrada) {
+          await update(ref(db, `admins/${entrada[0]}`), { senha: novaSenha });
+        }
+      }
+    } catch (e) {}
+  };
+
+  const handleTrocarSenha = async (senhaAtual, novaSenha) => {
+    const usuariosJson = await AsyncStorage.getItem('@gelato_mec:usuarios');
+    const lista = usuariosJson ? JSON.parse(usuariosJson) : [];
+    const idx = lista.findIndex(u => u.email === usuarioLogado.email && u.senha === senhaAtual);
+    if (idx === -1) return false;
+    lista[idx].senha = novaSenha;
+    await AsyncStorage.setItem('@gelato_mec:usuarios', JSON.stringify(lista));
+    return true;
   };
 
   const handleSair = () => {
@@ -181,6 +234,18 @@ export default function App() {
         </>
       );
     }
+    if (telaAuth === 'recuperar') {
+      return (
+        <>
+          <RecuperarSenhaScreen
+            onVoltar={() => setTelaAuth('login')}
+            onVerificarEmail={handleVerificarEmail}
+            onRedefinirSenha={handleRedefinirSenha}
+          />
+          <StatusBar style="light" />
+        </>
+      );
+    }
     return (
       <>
         <LoginScreen
@@ -189,6 +254,7 @@ export default function App() {
           onBiometria={handleBiometria}
           biometriaDisponivel={biometriaDisponivel}
           ultimoUsuario={ultimoUsuario}
+          onRecuperarSenha={() => setTelaAuth('recuperar')}
         />
         <StatusBar style="light" />
       </>
@@ -222,6 +288,7 @@ export default function App() {
             onSalvar={salvarPerfil}
             onVoltar={() => setVerPerfil(false)}
             onSair={handleSair}
+            onTrocarSenha={handleTrocarSenha}
           />
         </View>
       );
@@ -319,6 +386,7 @@ export default function App() {
             admins={admins}
             onAdicionarAdmin={adicionarAdmin}
             onDeletarAdmin={deletarAdmin}
+            onAlterarSenhaAdmin={alterarSenhaAdmin}
             usuarioLogado={usuarioLogado}
           />
         )}

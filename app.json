@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/logo_gelato_mec.png",
       "resizeMode": "contain",
       "backgroundColor": "#3D1A78"
     },
@@ -33,7 +33,13 @@
       }
     },
     "plugins": [
-      ["expo-location", { "locationAlwaysAndWhenInUsePermission": "Permitir que o Gelato MEC acesse sua localização." }]
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Permitir que o Gelato MEC acesse sua localização."
+        }
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "web": {
       "favicon": "./assets/favicon.png"

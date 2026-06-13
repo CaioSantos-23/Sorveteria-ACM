@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#ECE7F5',
-    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 28,
     paddingTop: 8,
     shadowColor: '#3D1A78',
     shadowOffset: { width: 0, height: -6 },
