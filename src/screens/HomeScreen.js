@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, Image, FlatList, TouchableOpacity,
-  StyleSheet, Dimensions, SafeAreaView, TextInput,
+  StyleSheet, Dimensions, SafeAreaView, TextInput, Platform, StatusBar,
 } from 'react-native';
 import { logo, getImagemProduto } from '../utils/images';
 
@@ -42,7 +42,7 @@ export default function HomeScreen({ produtos, onSelectProduto, onAbrirPerfil, u
     const qtd = item.qty ?? item.qtd ?? 0;
     return (
       <TouchableOpacity testID="produto-card" style={styles.card} onPress={() => onSelectProduto(item)} activeOpacity={0.85}>
-        <View style={{ position: 'relative' }}>
+        <View style={styles.fotoContainer}>
           {imagemSrc ? (
             <Image source={imagemSrc} style={styles.fotoImagem} resizeMode="cover" />
           ) : (
@@ -132,6 +132,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#3D1A78',
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0,
   },
   appbar: {
     backgroundColor: '#3D1A78',
@@ -221,13 +222,18 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  fotoImagem: {
+  fotoContainer: {
     width: '100%',
     aspectRatio: 1,
+    overflow: 'hidden',
+  },
+  fotoImagem: {
+    width: '100%',
+    height: '100%',
   },
   fotoArea: {
     width: '100%',
-    aspectRatio: 1,
+    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },

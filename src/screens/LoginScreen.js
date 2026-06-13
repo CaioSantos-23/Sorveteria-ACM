@@ -11,11 +11,15 @@ function ehAdmin(email) {
   return e.includes('admin') || e.includes('@gelatomec.com');
 }
 
-export default function LoginScreen({ onLogin, onGoRegister, onBiometria, biometriaDisponivel, ultimoUsuario }) {
+export default function LoginScreen({ onLogin, onGoRegister, onBiometria, biometriaDisponivel, ultimoUsuario, onRecuperarSenha }) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const isAdmin = ehAdmin(email);
+
+  const handleEsqueceuSenha = () => {
+    onRecuperarSenha();
+  };
 
   const handleLogin = () => {
     if (!email.trim()) { Alert.alert('E-mail obrigatório', 'Por favor, informe seu e-mail.'); return; }
@@ -90,6 +94,10 @@ export default function LoginScreen({ onLogin, onGoRegister, onBiometria, biomet
 
             <TouchableOpacity style={styles.botaoPrimario} onPress={handleLogin}>
               <Text style={styles.botaoPrimarioText}>Entrar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.linkEsqueceu} onPress={handleEsqueceuSenha}>
+              <Text style={styles.linkEsqueceuText}>Esqueceu sua senha?</Text>
             </TouchableOpacity>
 
             {!isAdmin && (
@@ -253,5 +261,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     flexShrink: 1,
+  },
+  linkEsqueceu: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    marginBottom: 4,
+  },
+  linkEsqueceuText: {
+    color: '#9090A0',
+    fontSize: 13,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });

@@ -6,7 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import BottomSheet from '../components/BottomSheet';
 
-const PAPEIS = ['Gerente', 'Estoque', 'Caixa'];
+const PAPEIS = ['Admin', 'Gerente', 'Estoque', 'Caixa'];
 
 function getIniciais(nome) {
   if (!nome) return '?';
@@ -91,8 +91,58 @@ function AdminForm({ onSalvar }) {
   );
 }
 
-export default function AdminEquipeScreen({ admins, onAdicionarAdmin, onDeletarAdmin, usuarioLogado }) {
+function TrocarSenhaForm({ admin, onSalvar }) {
+  const [novaSenha, setNovaSenha] = useState('');
+  const [conf, setConf] = useState('');
+  const [verSenha, setVerSenha] = useState(false);
+
+  const senhaCurta = novaSenha.length > 0 && novaSenha.length < 6;
+  const naoBatem = conf.length > 0 && conf !== novaSenha;
+  const valido = novaSenha.length >= 6 && conf === novaSenha;
+
+  return (
+    <>
+      <Text style={styles.sectionLabel}>Alterar senha de {admin?.nome}</Text>
+      <View style={{ marginTop: 12 }}>
+        <Text style={styles.label}>Nova senha *</Text>
+        <View style={{ position: 'relative' }}>
+          <TextInput
+            style={[styles.input, { paddingRight: 52 }, senhaCurta && { borderColor: '#E5484D' }]}
+            value={novaSenha} onChangeText={setNovaSenha}
+            placeholder="Mínimo 6 caracteres" placeholderTextColor="#9090A0"
+            secureTextEntry={!verSenha}
+          />
+          <TouchableOpacity style={styles.olhoBtn} onPress={() => setVerSenha(!verSenha)}>
+            <Ionicons name={verSenha ? 'eye-off-outline' : 'eye-outline'} size={20} color="#9090A0" />
+          </TouchableOpacity>
+        </View>
+        {senhaCurta && <Text style={styles.erroText}>A senha deve ter ao menos 6 caracteres</Text>}
+
+        <Text style={styles.label}>Confirmar nova senha *</Text>
+        <TextInput
+          style={[styles.input, naoBatem && { borderColor: '#E5484D' }]}
+          value={conf} onChangeText={setConf}
+          placeholder="Repita a senha" placeholderTextColor="#9090A0"
+          secureTextEntry={!verSenha}
+        />
+        {naoBatem && <Text style={styles.erroText}>As senhas não coincidem</Text>}
+      </View>
+
+      <TouchableOpacity
+        style={[styles.botaoPink, !valido && { opacity: 0.5 }]}
+        onPress={() => valido && onSalvar(novaSenha)}
+        disabled={!valido}
+      >
+        <Ionicons name="key-outline" size={20} color="#fff" />
+        <Text style={styles.botaoPinkText}>Salvar nova senha</Text>
+      </TouchableOpacity>
+    </>
+  );
+}
+
+export default function AdminEquipeScreen({ admins, onAdicionarAdmin, onDeletarAdmin, onAlterarSenhaAdmin, usuarioLogado }) {
   const [sheetAberta, setSheetAberta] = useState(false);
+  const [adminEditando, setAdminEditando] = useState(null);
 
   const confirmaDelete = (admin) => {
     Alert.alert(
@@ -106,8 +156,18 @@ export default function AdminEquipeScreen({ admins, onAdicionarAdmin, onDeletarA
   };
 
   const handleSalvar = async (dados) => {
-    await onAdicionarAdmin(dados);
+    const resultado = await onAdicionarAdmin(dados);
+    if (resultado === 'duplicado') {
+      Alert.alert('E-mail já cadastrado', 'Já existe um membro da equipe com este e-mail.');
+      return;
+    }
     setSheetAberta(false);
+  };
+
+  const handleAlterarSenha = async (novaSenha) => {
+    await onAlterarSenhaAdmin(adminEditando.id, novaSenha);
+    setAdminEditando(null);
+    Alert.alert('Senha alterada', `A senha de ${adminEditando.nome} foi atualizada com sucesso.`);
   };
 
   return (
@@ -146,9 +206,14 @@ export default function AdminEquipeScreen({ admins, onAdicionarAdmin, onDeletarA
                 </View>
               </View>
               {!eDono && (
-                <TouchableOpacity style={styles.actionDel} onPress={() => confirmaDelete(item)} activeOpacity={0.7}>
-                  <Ionicons name="trash-outline" size={17} color="#E5484D" />
-                </TouchableOpacity>
+                <View style={styles.acoesBotoes}>
+                  <TouchableOpacity style={styles.actionKey} onPress={() => setAdminEditando(item)} activeOpacity={0.7}>
+                    <Ionicons name="key-outline" size={17} color="#3D1A78" />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionDel} onPress={() => confirmaDelete(item)} activeOpacity={0.7}>
+                    <Ionicons name="trash-outline" size={17} color="#E5484D" />
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
           );
@@ -167,6 +232,14 @@ export default function AdminEquipeScreen({ admins, onAdicionarAdmin, onDeletarA
         onClose={() => setSheetAberta(false)}
       >
         <AdminForm onSalvar={handleSalvar} />
+      </BottomSheet>
+
+      <BottomSheet
+        visible={!!adminEditando}
+        title="Alterar senha"
+        onClose={() => setAdminEditando(null)}
+      >
+        <TrocarSenhaForm admin={adminEditando} onSalvar={handleAlterarSenha} />
       </BottomSheet>
     </SafeAreaView>
   );
@@ -209,6 +282,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 3, marginTop: 5, alignSelf: 'flex-start',
   },
   papelBadgeText: { fontSize: 11, fontWeight: '800', color: '#3D1A78' },
+  acoesBotoes: { flexDirection: 'row', gap: 8 },
+  actionKey: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#EDE3FF', alignItems: 'center', justifyContent: 'center' },
   actionDel: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#FCE9EA', alignItems: 'center', justifyContent: 'center' },
   vazio: { alignItems: 'center', paddingTop: 60, gap: 12 },
   vazioEmoji: { fontSize: 64 },

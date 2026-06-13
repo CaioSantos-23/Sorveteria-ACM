@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert, FlatList, SafeAreaView, TextInput,
+  Platform, StatusBar,
 } from 'react-native';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -196,7 +197,11 @@ export default function MapScreen({ lojas = [] }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#3D1A78' },
+  container: {
+    flex: 1,
+    backgroundColor: '#3D1A78',
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0,
+  },
   loading: {
     flex: 1,
     alignItems: 'center',
@@ -282,7 +287,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF4D8D',
   },
   lista: {
-    flex: 1,
     backgroundColor: '#F4F0FF',
     paddingTop: 14,
     paddingBottom: 8,
@@ -309,6 +313,7 @@ const styles = StyleSheet.create({
   },
   cardLoja: {
     width: 200,
+    height: 120,
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 14,
