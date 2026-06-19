@@ -45,10 +45,6 @@ const TABS_ADMIN = [
   { id: 'equipe', label: 'Equipe', icon: 'team' },
 ];
 
-function detectaAdmin(email) {
-  const e = (email || '').toLowerCase();
-  return e.includes('admin') || e.includes('@gelatomec.com');
-}
 
 export default function App() {
   const [splashFim, setSplashFim] = useState(false);
@@ -68,7 +64,7 @@ export default function App() {
   const logado = !!usuarioLogado;
   const { produtos, adicionarProduto, editarProduto, deletarProduto } = useProducts(logado);
   const { lojas, adicionarLoja, editarLoja, deletarLoja } = useLojas(logado);
-  const { admins, adicionarAdmin, deletarAdmin, alterarSenhaAdmin } = useAdmins(logado);
+  const { admins, adicionarAdmin, deletarAdmin, alterarSenhaAdmin, editarAdmin } = useAdmins(logado);
   const { perfil, salvarPerfil } = useProfile(usuarioLogado?.email);
 
   // Auth state
@@ -85,7 +81,7 @@ export default function App() {
   const [produtoParaEditar, setProdutoParaEditar] = useState(null);
   const [telaAdicionarProduto, setTelaAdicionarProduto] = useState(false);
 
-  const ehAdmin = detectaAdmin(usuarioLogado?.email);
+  const ehAdmin = !!usuarioLogado?.isAdmin;
 
   // ========================
   // HANDLERS AUTH
@@ -387,6 +383,7 @@ export default function App() {
             onAdicionarAdmin={adicionarAdmin}
             onDeletarAdmin={deletarAdmin}
             onAlterarSenhaAdmin={alterarSenhaAdmin}
+            onEditarAdmin={editarAdmin}
             usuarioLogado={usuarioLogado}
           />
         )}

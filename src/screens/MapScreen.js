@@ -199,7 +199,7 @@ export default function MapScreen({ lojas = [] }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#3D1A78',
+    backgroundColor: '#F4F0FF',
     paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0,
   },
   loading: {
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   mapaContainer: {
-    height: 340,
+    flex: 1,
     position: 'relative',
     backgroundColor: '#dDEbe0',
   },
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   lista: {
     backgroundColor: '#F4F0FF',
     paddingTop: 14,
-    paddingBottom: 8,
+    paddingBottom: 16,
   },
   listaTitulo: {
     fontSize: 12,

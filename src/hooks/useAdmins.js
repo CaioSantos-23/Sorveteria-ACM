@@ -39,5 +39,9 @@ export function useAdmins(enabled = true) {
     await update(ref(db, `${CAMINHO}/${id}`), { senha: novaSenha });
   };
 
-  return { admins, carregando, adicionarAdmin, deletarAdmin, alterarSenhaAdmin };
+  const editarAdmin = async (id, dados) => {
+    await update(ref(db, `${CAMINHO}/${id}`), dados);
+  };
+
+  return { admins, carregando, adicionarAdmin, deletarAdmin, alterarSenhaAdmin, editarAdmin };
 }

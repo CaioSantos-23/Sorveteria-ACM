@@ -27,7 +27,9 @@ export function useAuth() {
 
       const usuariosJson = await AsyncStorage.getItem(CHAVE_USUARIOS);
       if (usuariosJson) setUsuarios(JSON.parse(usuariosJson));
-      // ultimoUsuario não é carregado do storage: app sempre abre limpo
+
+      const ultimoJson = await AsyncStorage.getItem(CHAVE_ULTIMO_USUARIO);
+      if (ultimoJson) setUltimoUsuario(JSON.parse(ultimoJson));
     } catch (e) {
       console.warn('Erro ao inicializar auth:', e);
     } finally {
@@ -43,6 +45,7 @@ export function useAuth() {
     if (usuario) {
       setUsuarioLogado(usuario);
       setUltimoUsuario(usuario);
+      await AsyncStorage.setItem(CHAVE_ULTIMO_USUARIO, JSON.stringify(usuario));
       return true;
     }
 
@@ -54,9 +57,10 @@ export function useAuth() {
         const entrada = Object.entries(dados).find(([, v]) => v.email === email && v.senha === senha);
         if (entrada) {
           const [id, dadosAdmin] = entrada;
-          const adminUser = { id, ...dadosAdmin };
+          const adminUser = { id, ...dadosAdmin, isAdmin: true };
           setUsuarioLogado(adminUser);
           setUltimoUsuario(adminUser);
+          await AsyncStorage.setItem(CHAVE_ULTIMO_USUARIO, JSON.stringify(adminUser));
           return true;
         }
       }
@@ -80,8 +84,6 @@ export function useAuth() {
 
     const logout = async () => {
     setUsuarioLogado(null);
-    setUltimoUsuario(null);
-    await AsyncStorage.removeItem(CHAVE_ULTIMO_USUARIO);
   };
 
   const autenticarBiometria = async () => {

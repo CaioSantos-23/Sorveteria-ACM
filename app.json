@@ -4,7 +4,7 @@
     "slug": "gelato-mec",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo_gelato_mec.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/logo_gelato_mec.png",
@@ -30,7 +30,11 @@
         "googleMaps": {
           "apiKey": "SUA_CHAVE_AQUI"
         }
-      }
+      },
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "plugins": [
       [
@@ -42,12 +46,13 @@
       "@react-native-community/datetimepicker"
     ],
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/logo_gelato_mec.png"
     },
     "extra": {
       "eas": {
-        "projectId": "fb977c48-bf59-4818-9503-8b8bfe90f98f"
+        "projectId": "2cac15e8-43a9-460f-8f8e-8900918a7e43"
       }
-    }
+    },
+    "owner": "xaneu23"
   }
 }

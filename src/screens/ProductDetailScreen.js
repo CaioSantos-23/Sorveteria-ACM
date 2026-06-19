@@ -1,7 +1,8 @@
 import React from 'react';
 import {
-  View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Dimensions, Platform, StatusBar,
+  View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Dimensions,
 } from 'react-native';
+import Constants from 'expo-constants';
 import { getImagemProduto } from '../utils/images';
 
 const { width } = Dimensions.get('window');
@@ -122,7 +123,7 @@ const styles = StyleSheet.create({
   },
   voltarBtn: {
     position: 'absolute',
-    top: (Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0) + 16,
+    top: Constants.statusBarHeight + 16,
     left: 16,
     zIndex: 10,
     backgroundColor: 'rgba(0,0,0,0.35)',

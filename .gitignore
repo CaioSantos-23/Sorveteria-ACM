@@ -40,3 +40,6 @@ yarn-error.*
 /ios
 /android
 DOCUMENTACAO_COMPLETA.md
+
+# IDE
+.idea/

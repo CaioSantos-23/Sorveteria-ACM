@@ -91,6 +91,49 @@ function AdminForm({ onSalvar }) {
   );
 }
 
+function EditarAdminForm({ admin, onSalvar }) {
+  const [nome, setNome] = useState(admin?.nome || '');
+  const [papel, setPapel] = useState(admin?.papel || 'Gerente');
+  const valido = nome.trim().length > 0;
+
+  return (
+    <>
+      <Text style={styles.sectionLabel}>Editar {admin?.nome}</Text>
+      <View style={{ marginTop: 12 }}>
+        <Text style={styles.label}>Nome</Text>
+        <TextInput
+          style={styles.input}
+          value={nome}
+          onChangeText={setNome}
+          placeholder="Nome completo"
+          placeholderTextColor="#9090A0"
+          autoCapitalize="words"
+        />
+        <Text style={styles.label}>Função</Text>
+        <View style={styles.papelRow}>
+          {PAPEIS.map((p) => (
+            <TouchableOpacity
+              key={p}
+              style={[styles.papelBtn, papel === p && styles.papelBtnAtivo]}
+              onPress={() => setPapel(p)}
+            >
+              <Text style={[styles.papelBtnText, papel === p && styles.papelBtnTextAtivo]}>{p}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+      <TouchableOpacity
+        style={[styles.botaoPink, !valido && { opacity: 0.5 }]}
+        onPress={() => valido && onSalvar({ nome: nome.trim(), papel })}
+        disabled={!valido}
+      >
+        <Ionicons name="checkmark" size={20} color="#fff" />
+        <Text style={styles.botaoPinkText}>Salvar alterações</Text>
+      </TouchableOpacity>
+    </>
+  );
+}
+
 function TrocarSenhaForm({ admin, onSalvar }) {
   const [novaSenha, setNovaSenha] = useState('');
   const [conf, setConf] = useState('');
@@ -140,9 +183,10 @@ function TrocarSenhaForm({ admin, onSalvar }) {
   );
 }
 
-export default function AdminEquipeScreen({ admins, onAdicionarAdmin, onDeletarAdmin, onAlterarSenhaAdmin, usuarioLogado }) {
+export default function AdminEquipeScreen({ admins, onAdicionarAdmin, onDeletarAdmin, onAlterarSenhaAdmin, onEditarAdmin, usuarioLogado }) {
   const [sheetAberta, setSheetAberta] = useState(false);
   const [adminEditando, setAdminEditando] = useState(null);
+  const [adminEditandoDados, setAdminEditandoDados] = useState(null);
 
   const confirmaDelete = (admin) => {
     Alert.alert(
@@ -168,6 +212,12 @@ export default function AdminEquipeScreen({ admins, onAdicionarAdmin, onDeletarA
     await onAlterarSenhaAdmin(adminEditando.id, novaSenha);
     setAdminEditando(null);
     Alert.alert('Senha alterada', `A senha de ${adminEditando.nome} foi atualizada com sucesso.`);
+  };
+
+  const handleEditarDados = async (dados) => {
+    await onEditarAdmin(adminEditandoDados.id, dados);
+    setAdminEditandoDados(null);
+    Alert.alert('Alterações salvas', `Os dados de ${dados.nome} foram atualizados.`);
   };
 
   return (
@@ -207,6 +257,9 @@ export default function AdminEquipeScreen({ admins, onAdicionarAdmin, onDeletarA
               </View>
               {!eDono && (
                 <View style={styles.acoesBotoes}>
+                  <TouchableOpacity style={styles.actionEdit} onPress={() => setAdminEditandoDados(item)} activeOpacity={0.7}>
+                    <Ionicons name="pencil-outline" size={17} color="#FF8C00" />
+                  </TouchableOpacity>
                   <TouchableOpacity style={styles.actionKey} onPress={() => setAdminEditando(item)} activeOpacity={0.7}>
                     <Ionicons name="key-outline" size={17} color="#3D1A78" />
                   </TouchableOpacity>
@@ -232,6 +285,14 @@ export default function AdminEquipeScreen({ admins, onAdicionarAdmin, onDeletarA
         onClose={() => setSheetAberta(false)}
       >
         <AdminForm onSalvar={handleSalvar} />
+      </BottomSheet>
+
+      <BottomSheet
+        visible={!!adminEditandoDados}
+        title="Editar membro"
+        onClose={() => setAdminEditandoDados(null)}
+      >
+        <EditarAdminForm admin={adminEditandoDados} onSalvar={handleEditarDados} />
       </BottomSheet>
 
       <BottomSheet
@@ -283,6 +344,7 @@ const styles = StyleSheet.create({
   },
   papelBadgeText: { fontSize: 11, fontWeight: '800', color: '#3D1A78' },
   acoesBotoes: { flexDirection: 'row', gap: 8 },
+  actionEdit: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#FFF3E0', alignItems: 'center', justifyContent: 'center' },
   actionKey: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#EDE3FF', alignItems: 'center', justifyContent: 'center' },
   actionDel: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#FCE9EA', alignItems: 'center', justifyContent: 'center' },
   vazio: { alignItems: 'center', paddingTop: 60, gap: 12 },
